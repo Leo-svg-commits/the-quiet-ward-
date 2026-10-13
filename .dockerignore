@@ -1,0 +1,5 @@
+accounts.json
+.git
+*.patch
+run-game.ps1
+*.gd
