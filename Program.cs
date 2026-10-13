@@ -1,0 +1,26 @@
+using System;
+using System.IO;
+using System.Runtime.Loader;
+using System.Threading;
+
+public static class Program
+{
+    public static int Main()
+    {
+        int port;
+        if (!int.TryParse(Environment.GetEnvironmentVariable("PORT"), out port) || port < 1 || port > 65535)
+            port = 8000;
+
+        string root = Directory.GetCurrentDirectory();
+        var stop = new ManualResetEventSlim(false);
+        Console.CancelKeyPress += (sender, args) => { args.Cancel = true; stop.Set(); };
+        AssemblyLoadContext.Default.Unloading += context => stop.Set();
+
+        using (var server = new QuietWardServer(root, port, true))
+        {
+            server.Start();
+            stop.Wait();
+        }
+        return 0;
+    }
+}
