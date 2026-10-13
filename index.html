@@ -622,7 +622,7 @@
     const mount = document.querySelector("#game");
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x11191d);
-    scene.fog = new THREE.FogExp2(0x11191d, 0.027);
+    scene.fog = new THREE.FogExp2(0x11191d, 0.014);
 
     const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 90);
     let cameraDistance = 5.2;
@@ -937,9 +937,9 @@
         hole.rotation.x = Math.PI / 2; hole.position.set(0, 4.41, z); world.add(hole);
         addVines(-3.4, z, 5.1, 7);
       }
-      const sideGlow = new THREE.AmbientLight(0x8e9b9c, .32);
+      const sideGlow = new THREE.AmbientLight(0x8e9b9c, .75);
       scene.add(sideGlow);
-      const moon = new THREE.DirectionalLight(0x9fb4c2, 1.0);
+      const moon = new THREE.DirectionalLight(0x9fb4c2, 1.4);
       moon.position.set(-12, 20, 3); moon.castShadow = true;
       moon.shadow.mapSize.set(1024, 1024);
       moon.shadow.camera.left = -28; moon.shadow.camera.right = 28;
