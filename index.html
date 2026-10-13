@@ -1198,6 +1198,10 @@
     const character = new THREE.Group();
     scene.add(character);
     character.add(survivorModel.root);
+    // A small local fill light keeps the player silhouette visible in the dark ward.
+    const playerFillLight = new THREE.PointLight(0xc8c2ad, 2.2, 5, 2);
+    playerFillLight.position.set(0, 1.25, 0);
+    character.add(playerFillLight);
     function createNameTag(name, horizontalOffset = 0, heightOffset = 2.35) {
       const canvas = document.createElement("canvas");
       canvas.width = 384;
@@ -1321,7 +1325,10 @@
       ctx.fillStyle = "#211f19"; ctx.font = "25px Georgia"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(text, 256, 66);
       const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-      return new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide }));
+      // Sprites face the camera, so sign text stays readable from either side.
+      const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, color: 0xffffff, fog: true, depthTest: true }));
+      label.scale.set(width, height, 1);
+      return label;
     }
 
     const entity = new THREE.Group();
