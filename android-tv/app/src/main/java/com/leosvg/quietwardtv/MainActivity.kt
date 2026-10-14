@@ -167,7 +167,7 @@ class MainActivity : Activity() {
             val key = mapped.first.replace("\\", "\\\\").replace("'", "\\'")
             val code = mapped.second.replace("'", "\\'")
             val repeat = if (event.repeatCount > 0) "true" else "false"
-            val js = "(function(){if('$type'==='keydown' && '$key'==='Enter'){const intro=document.querySelector('#intro');if(intro && !intro.classList.contains('hidden')){const start=document.querySelector('#start');if(start){start.click();return;}}const a=document.activeElement;if(a && a!==document.body && (a.tagName==='BUTTON'||a.tagName==='INPUT'||a.tagName==='SELECT'||a.getAttribute('role')==='button')){if(typeof a.click==='function'){a.click();return;}}}if('$type'==='keydown' && '$code'==='Enter' && window.__quietWardTvAction){window.__quietWardTvAction('interact');return;}if('$type'==='keydown' && '$code'==='KeyE' && window.__quietWardTvAction){window.__quietWardTvAction('interact');return;}if('$type'==='keydown' && '$code'==='Space' && window.__quietWardTvAction){window.__quietWardTvAction('weapon');return;}const e=new KeyboardEvent('$type',{key:'$key',code:'$code',bubbles:true,cancelable:true,repeat:$repeat});window.dispatchEvent(e);})();"
+            val js = "(function(){window.__quietWardNativeInputAt=Date.now();if('$type'==='keydown' && '$key'==='Enter'){const intro=document.querySelector('#intro');if(intro && !intro.classList.contains('hidden')){const start=document.querySelector('#start');if(start){start.click();return;}}const a=document.activeElement;if(a && a!==document.body && (a.tagName==='BUTTON'||a.tagName==='INPUT'||a.tagName==='SELECT'||a.getAttribute('role')==='button')){if(typeof a.click==='function'){a.click();return;}}}if('$type'==='keydown' && '$code'==='Enter' && window.__quietWardTvAction){window.__quietWardTvAction('interact');return;}if('$type'==='keydown' && '$code'==='KeyE' && window.__quietWardTvAction){window.__quietWardTvAction('interact');return;}if('$type'==='keydown' && '$code'==='Space' && window.__quietWardTvAction){window.__quietWardTvAction('weapon');return;}const e=new KeyboardEvent('$type',{key:'$key',code:'$code',bubbles:true,cancelable:true,repeat:$repeat});window.dispatchEvent(e);})();"
             runOnUiThread { gameView.evaluateJavascript(js, null) }
             return true
         }
@@ -178,7 +178,7 @@ class MainActivity : Activity() {
         val type = if (down) "keydown" else "keyup"
         val safeKey = key.replace("\\", "\\\\").replace("'", "\\'")
         val safeCode = code.replace("'", "\\'")
-        val js = "window.dispatchEvent(new KeyboardEvent('$type',{key:'$safeKey',code:'$safeCode',bubbles:true,cancelable:true}));"
+        val js = "window.__quietWardNativeInputAt=Date.now();window.dispatchEvent(new KeyboardEvent('$type',{key:'$safeKey',code:'$safeCode',bubbles:true,cancelable:true}));"
         runOnUiThread { if (::gameView.isInitialized) gameView.evaluateJavascript(js, null) }
     }
 
