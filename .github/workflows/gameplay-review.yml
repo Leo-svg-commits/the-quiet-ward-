@@ -86,12 +86,12 @@ jobs:
               check('Canvas has usable dimensions', !!canvas && canvas.width > 0 && canvas.height > 0 &&
                 canvas.rect.width > 0 && canvas.rect.height > 0, JSON.stringify(canvas));
 
-              await page.screenshot({ path: 'game-review-before-start.png', fullPage: true });
+              await page.screenshot({ path: 'game-review-before-start.png', fullPage: false, animations: 'disabled', timeout: 0 });
               await page.locator('#start').click();
               await page.waitForTimeout(1500);
               check('Start button transitions out of intro', !(await page.locator('#intro').isVisible()));
               check('Gameplay HUD becomes visible', await page.locator('#hud').isVisible());
-              await page.screenshot({ path: 'game-review-after-start.png', fullPage: true });
+              await page.screenshot({ path: 'game-review-after-start.png', fullPage: false, animations: 'disabled', timeout: 0 });
 
               // Check the interactive map controls after gameplay starts.
               const mapToggle = page.locator('#map-toggle');
@@ -154,7 +154,7 @@ jobs:
               const report = { checkedAt: new Date().toISOString(), url: 'https://quiet-ward-test.onrender.com/', status: response?.status() ?? null, title, hasCanvas, hasStart, pageErrors: errors };
               require('fs').writeFileSync('deployed-staging-smoke-test.json', JSON.stringify(report, null, 2));
               console.log(JSON.stringify(report, null, 2));
-              await page.screenshot({ path: 'deployed-staging-smoke-test.png', fullPage: true });
+              await page.screenshot({ path: 'deployed-staging-smoke-test.png', fullPage: false, animations: 'disabled', timeout: 0 });
               if (!response || !response.ok() || (!hasCanvas && !hasStart)) process.exitCode = 1;
             } catch (e) {
               require('fs').writeFileSync('deployed-staging-smoke-test.json', JSON.stringify({ url: 'https://quiet-ward-test.onrender.com/', error: String(e), pageErrors: errors }, null, 2));
