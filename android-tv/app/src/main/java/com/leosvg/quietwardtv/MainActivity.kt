@@ -3,6 +3,8 @@ package com.leosvg.quietwardtv
 import android.app.Activity
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.InputDevice
+import android.view.MotionEvent
 import android.view.View
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -11,6 +13,7 @@ import android.webkit.WebViewClient
 class MainActivity : Activity() {
     private lateinit var gameView: WebView
     private val gameUrl = "https://quiet-ward-test.onrender.com/"
+    private val joystickKeys = mutableSetOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +38,7 @@ class MainActivity : Activity() {
         gameView.settings.mediaPlaybackRequiresUserGesture = false
         gameView.settings.useWideViewPort = true
         gameView.settings.loadWithOverviewMode = true
-        gameView.setInitialScale(75)
+        gameView.setInitialScale(65)
         gameView.webChromeClient = WebChromeClient()
         gameView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -62,6 +65,8 @@ class MainActivity : Activity() {
         KeyEvent.KEYCODE_BUTTON_Y -> "e" to "KeyE"
         KeyEvent.KEYCODE_BUTTON_L1 -> "Shift" to "ShiftLeft"
         KeyEvent.KEYCODE_BUTTON_R1 -> "Shift" to "ShiftRight"
+        KeyEvent.KEYCODE_BUTTON_L2 -> "Control" to "ControlLeft"
+        KeyEvent.KEYCODE_BUTTON_R2 -> "Alt" to "AltRight"
         KeyEvent.KEYCODE_BUTTON_START -> "Escape" to "Escape"
         KeyEvent.KEYCODE_BUTTON_SELECT -> "Tab" to "Tab"
         KeyEvent.KEYCODE_SPACE -> " " to "Space"
@@ -85,6 +90,41 @@ class MainActivity : Activity() {
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    private fun sendKey(key: String, code: String, down: Boolean) {
+        val type = if (down) "keydown" else "keyup"
+        val safeKey = key.replace("\\", "\\\\").replace("'", "\\'")
+        val safeCode = code.replace("'", "\\'")
+        val js = "window.dispatchEvent(new KeyboardEvent('$type',{key:'$safeKey',code:'$safeCode',bubbles:true,cancelable:true}));"
+        runOnUiThread { if (::gameView.isInitialized) gameView.evaluateJavascript(js, null) }
+    }
+
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_MOVE &&
+            (event.source and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK) {
+            val x = event.getAxisValue(MotionEvent.AXIS_X)
+            val y = event.getAxisValue(MotionEvent.AXIS_Y)
+            val rx = event.getAxisValue(MotionEvent.AXIS_Z)
+            val ry = event.getAxisValue(MotionEvent.AXIS_RZ)
+            val wanted = mutableSetOf<String>()
+            if (y < -0.45f || ry < -0.65f) wanted.add("ArrowUp")
+            if (y > 0.45f || ry > 0.65f) wanted.add("ArrowDown")
+            if (x < -0.45f || rx < -0.45f) wanted.add("ArrowLeft")
+            if (x > 0.45f || rx > 0.45f) wanted.add("ArrowRight")
+            val map = mapOf("ArrowUp" to "ArrowUp", "ArrowDown" to "ArrowDown",
+                "ArrowLeft" to "ArrowLeft", "ArrowRight" to "ArrowRight")
+            for (key in joystickKeys.toSet()) {
+                if (key !in wanted) sendKey(key, map[key] ?: key, false)
+            }
+            for (key in wanted) {
+                if (key !in joystickKeys) sendKey(key, map[key] ?: key, true)
+            }
+            joystickKeys.clear()
+            joystickKeys.addAll(wanted)
+            return true
+        }
+        return super.onGenericMotionEvent(event)
     }
 
     @Suppress("DEPRECATION")
