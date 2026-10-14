@@ -75,7 +75,7 @@ class MainActivity : Activity() {
             val key = mapped.first.replace("\\", "\\\\").replace("'", "\\'")
             val code = mapped.second.replace("'", "\\'")
             val repeat = if (event.repeatCount > 0) "true" else "false"
-            val js = "(function(){const e=new KeyboardEvent('$type',{key:'$key',code:'$code',bubbles:true,cancelable:true,repeat:$repeat});Object.defineProperty(e,'keyCode',{get:()=>${event.keyCode}});document.dispatchEvent(e);window.dispatchEvent(e);})();"
+            val js = "(function(){if('$type'==='keydown' && '$key'==='Enter'){const intro=document.querySelector('#intro');if(intro && !intro.classList.contains('hidden')){const start=document.querySelector('#start');if(start){start.click();return;}}const a=document.activeElement;if(a && a!==document.body && (a.tagName==='BUTTON'||a.tagName==='INPUT'||a.tagName==='SELECT'||a.getAttribute('role')==='button')){if(typeof a.click==='function'){a.click();return;}}}const e=new KeyboardEvent('$type',{key:'$key',code:'$code',bubbles:true,cancelable:true,repeat:$repeat});window.dispatchEvent(e);})();"
             runOnUiThread { gameView.evaluateJavascript(js, null) }
             return true
         }
