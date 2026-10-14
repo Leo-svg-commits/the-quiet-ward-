@@ -570,7 +570,9 @@
         <div><b>GAMEPAD · LEFT STICK</b> &nbsp;Move; push forward fully to sprint</div>
         <div><b>GAMEPAD · RIGHT STICK</b> &nbsp;Turn to look around</div>
         <div><b>A / X / RT</b> &nbsp;Interact / use equipped weapon</div>
-        <div><b>B / R3 / Y</b> &nbsp;Flashlight / flashlight / map</div>
+        <div><b>B / R3</b> &nbsp;Toggle flashlight</div>
+        <div><b>Y / BACK</b> &nbsp;Open or close the map</div>
+        <div><b>LT</b> &nbsp;Zoom out</div>
         <div><b>LB / RB · BACK · START</b> &nbsp;Cycle weapon / map / settings</div>
       </div>
       <div class="lobby-actions">
@@ -1176,8 +1178,10 @@
         }
       }
       const xPressed = justPressed(2);
+      const leftTriggerPressed = justPressed(6);
       const rightTriggerPressed = justPressed(7);
       if (xPressed || rightTriggerPressed) useWeapon();
+      if (leftTriggerPressed) document.querySelector("#zoom-out").click();
       const yPressed = justPressed(3);
       const backPressed = justPressed(8);
       if (yPressed || backPressed) setMapOpen(mapPanel.hidden);
