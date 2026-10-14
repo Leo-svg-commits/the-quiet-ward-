@@ -39,6 +39,10 @@ class MainActivity : Activity() {
         gameView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                gameView.evaluateJavascript(
+                    "(function(){var m=document.querySelector('meta[name=viewport]');if(m){m.setAttribute('content','width=device-width, initial-scale=0.92, maximum-scale=0.92, user-scalable=no');}document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';})();",
+                    null
+                )
                 gameView.requestFocus()
             }
         }
