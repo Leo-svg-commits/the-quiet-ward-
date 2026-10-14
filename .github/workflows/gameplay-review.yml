@@ -1,0 +1,129 @@
+name: Game Test and Review (staging)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - staging/android-tv-app
+    paths:
+      - 'quiet-ward-mobile-test.html'
+      - '.github/workflows/gameplay-review.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out staging branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install --save-dev playwright
+          npx playwright install --with-deps chromium
+
+      - name: Start local static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/quiet-ward-server.log 2>&1 &
+          echo $! > /tmp/quiet-ward-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/quiet-ward-mobile-test.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/quiet-ward-server.log
+          exit 1
+
+      - name: Test game startup and capture review evidence
+        run: |
+          cat > game-review.cjs <<'EOF'
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true,
+              args: ['--enable-webgl', '--use-gl=angle', '--use-angle=swiftshader']
+            });
+            const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
+            page.on('console', message => {
+              if (message.type() === 'error') errors.push(message.text());
+            });
+
+            const results = [];
+            const check = (name, passed, detail = '') => {
+              results.push({ name, status: passed ? 'PASS' : 'FAIL', detail });
+              console.log(`${passed ? 'PASS' : 'FAIL'}: ${name}${detail ? ' — ' + detail : ''}`);
+            };
+
+            try {
+              const response = await page.goto('http://127.0.0.1:4173/quiet-ward-mobile-test.html', {
+                waitUntil: 'networkidle',
+                timeout: 60000
+              });
+              check('HTML responds successfully', !!response && response.ok(), response ? String(response.status()) : 'no response');
+
+              await page.waitForTimeout(2500);
+              check('Game title is present', (await page.title()).includes('THE QUIET WARD'), await page.title());
+              check('Intro screen is visible', await page.locator('#intro').isVisible());
+              check('Start button is available', await page.locator('#start').isVisible());
+              check('Game canvas is created', await page.locator('#game canvas').count() > 0);
+              const canvas = await page.locator('#game canvas').first().evaluate(el => ({
+                width: el.width, height: el.height,
+                rect: { width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height }
+              })).catch(() => null);
+              check('Canvas has usable dimensions', !!canvas && canvas.width > 0 && canvas.height > 0 &&
+                canvas.rect.width > 0 && canvas.rect.height > 0, JSON.stringify(canvas));
+
+              await page.screenshot({ path: 'game-review-before-start.png', fullPage: true });
+              await page.locator('#start').click();
+              await page.waitForTimeout(1500);
+              check('Start button transitions out of intro', !(await page.locator('#intro').isVisible()));
+              check('Gameplay HUD becomes visible', await page.locator('#hud').isVisible());
+              await page.screenshot({ path: 'game-review-after-start.png', fullPage: true });
+
+              const seriousErrors = errors.filter(e => !/favicon|net::ERR_ABORTED/i.test(e));
+              check('No browser JavaScript/console errors', seriousErrors.length === 0,
+                seriousErrors.slice(0, 8).join(' | ') || 'none');
+
+              require('fs').writeFileSync('game-review-results.json', JSON.stringify({
+                checkedAt: new Date().toISOString(), url: 'local staging-branch HTML',
+                results, browserErrors: seriousErrors
+              }, null, 2));
+
+              if (results.some(r => r.status === 'FAIL')) process.exitCode = 1;
+            } catch (error) {
+              console.error(error);
+              require('fs').writeFileSync('game-review-results.json', JSON.stringify({
+                results, fatalError: String(error), browserErrors: errors
+              }, null, 2));
+              process.exitCode = 1;
+            } finally {
+              await browser.close();
+            }
+          })();
+          EOF
+          node game-review.cjs
+
+      - name: Upload test report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quiet-ward-game-test-review
+          path: |
+            game-review-results.json
+            game-review-before-start.png
+            game-review-after-start.png
+          if-no-files-found: warn
+          retention-days: 14
