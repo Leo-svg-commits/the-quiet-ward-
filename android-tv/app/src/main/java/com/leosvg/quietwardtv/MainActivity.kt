@@ -74,6 +74,45 @@ class MainActivity : Activity() {
                         guide.innerHTML='<strong>CONTROLLER GUIDE · SELECT to hide/show</strong><div>Left stick / D-pad: Move and turn</div><div>A / Y / L2: Start or interact</div><div>X / R2: Use weapon</div><div>B / START: Back / escape hiding</div><div>L1 / R1: Sprint (hold)</div><div class="muted">Right stick: Move/turn</div>';
                         document.body.appendChild(guide);
                       }
+                      // Fallback for controllers exposed by Chromium's Gamepad API but not as Android key events.
+                      if(!window.__quietWardGamepadPoller){
+                        var gpState=window.__quietWardGamepadPoller={held:{},buttons:{},lastAction:0};
+                        var gpMap={12:['ArrowUp','ArrowUp'],13:['ArrowDown','ArrowDown'],14:['ArrowLeft','ArrowLeft'],15:['ArrowRight','ArrowRight'],1:['Escape','Escape'],3:['e','KeyE'],4:['Shift','ShiftLeft'],5:['Shift','ShiftRight'],6:['Control','ControlLeft'],8:['Tab','Tab'],9:['Escape','Escape']};
+                        function gpAction(action){
+                          var now=Date.now();if(now-gpState.lastAction<220)return;gpState.lastAction=now;
+                          var intro=document.querySelector('#intro'),start=document.querySelector('#start');
+                          if(action==='interact'&&intro&&!intro.classList.contains('hidden')&&start){start.click();return;}
+                          if(window.__quietWardTvAction)window.__quietWardTvAction(action);
+                        }
+                        function gpEvent(key,code,down,id){
+                          if(!!gpState.held[id]===down)return;
+                          gpState.held[id]=down;
+                          window.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{key:key,code:code,bubbles:true,cancelable:true,repeat:false}));
+                        }
+                        window.__quietWardPollGamepads=function(){
+                          try{
+                            var pads=navigator.getGamepads?navigator.getGamepads():[];
+                            var nativeRecent=Date.now()-(window.__quietWardNativeInputAt||0)<500;
+                            for(var p=0;p<pads.length;p++){
+                              var pad=pads[p];if(!pad||!pad.connected)continue;
+                              for(var b=0;b<pad.buttons.length;b++){
+                                var pressed=!!(pad.buttons[b]&&(pad.buttons[b].pressed||pad.buttons[b].value>.55));
+                                var id='gp'+p+'b'+b,was=!!gpState.buttons[id];gpState.buttons[id]=pressed;
+                                if(!nativeRecent&&pressed&&!was){
+                                  if(b===0)gpAction('interact');
+                                  else if(b===2||b===7)gpAction('weapon');
+                                  else if(gpMap[b])gpEvent(gpMap[b][0],gpMap[b][1],true,id);
+                                }else if(!nativeRecent&&!pressed&&was&&gpMap[b])gpEvent(gpMap[b][0],gpMap[b][1],false,id);
+                              }
+                              var axes=pad.axes||[],lx=axes[0]||0,ly=axes[1]||0,rx=axes.length>2?axes[2]:0;
+                              var want={'ArrowUp':ly<-.35,'ArrowDown':ly>.35,'ArrowLeft':lx<-.35||rx<-.45,'ArrowRight':lx>.35||rx>.45};
+                              for(var key in want){var id='axis'+p+key,was=!!gpState.held[id];if(!nativeRecent&&want[key]!==was)gpEvent(key,key,want[key],id);}
+                            }
+                          }catch(e){}
+                          requestAnimationFrame(window.__quietWardPollGamepads);
+                        };
+                        requestAnimationFrame(window.__quietWardPollGamepads);
+                      }
                       window.__quietWardTvAction=function(action){
                         var intro=document.querySelector('#intro'),start=document.querySelector('#start');
                         if(action==='interact'&&intro&&!intro.classList.contains('hidden')&&start){start.click();return;}
