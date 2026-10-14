@@ -35,7 +35,7 @@ class MainActivity : Activity() {
         gameView.settings.mediaPlaybackRequiresUserGesture = false
         gameView.settings.useWideViewPort = true
         gameView.settings.loadWithOverviewMode = true
-        gameView.setInitialScale(85)
+        gameView.setInitialScale(75)
         gameView.webChromeClient = WebChromeClient()
         gameView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
