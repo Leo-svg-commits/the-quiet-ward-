@@ -567,6 +567,11 @@
         <div><b>DOUBLE-CLICK ANYWHERE</b> &nbsp;Toggle sprint; hold ↑ to run</div>
         <div><b>CLICK</b> &nbsp;Take items / shine light</div>
         <div><b>CLICK</b> &nbsp;Climb stairs / hide</div>
+        <div><b>GAMEPAD · LEFT STICK</b> &nbsp;Move; push forward fully to sprint</div>
+        <div><b>GAMEPAD · RIGHT STICK</b> &nbsp;Turn to look around</div>
+        <div><b>A / X / RT</b> &nbsp;Interact / use equipped weapon</div>
+        <div><b>B / R3 / Y</b> &nbsp;Flashlight / flashlight / map</div>
+        <div><b>LB / RB · BACK · START</b> &nbsp;Cycle weapon / map / settings</div>
       </div>
       <div class="lobby-actions">
         <button class="start" id="profile-open" type="button">Profile / sign in</button>
@@ -1170,8 +1175,12 @@
           showToast(flashlightOn ? "The beam shivers back to life." : "The corridor disappears.", 1500);
         }
       }
-      if (justPressed(2) || justPressed(7)) useWeapon();
-      if (justPressed(3) || justPressed(8)) setMapOpen(mapPanel.hidden);
+      const xPressed = justPressed(2);
+      const rightTriggerPressed = justPressed(7);
+      if (xPressed || rightTriggerPressed) useWeapon();
+      const yPressed = justPressed(3);
+      const backPressed = justPressed(8);
+      if (yPressed || backPressed) setMapOpen(mapPanel.hidden);
       if (justPressed(9)) {
         if (!active) document.querySelector("#start").click();
         else document.querySelector("#server-toggle").click();
@@ -1183,8 +1192,10 @@
         document.querySelector("#flash-state").textContent = flashlightOn ? "ON · FLICKERING" : "OFF";
         showToast(flashlightOn ? "The beam shivers back to life." : "The corridor disappears.", 1500);
       }
-      if (justPressed(4) || justPressed(5)) {
-        const direction = justPressed(5) ? 1 : -1;
+      const leftBumperPressed = justPressed(4);
+      const rightBumperPressed = justPressed(5);
+      if (leftBumperPressed || rightBumperPressed) {
+        const direction = rightBumperPressed ? 1 : -1;
         for (let step = 0; step < gamepadWeapons.length; step++) {
           gamepadWeaponIndex = (gamepadWeaponIndex + direction + gamepadWeapons.length) % gamepadWeapons.length;
           const weapon = gamepadWeapons[gamepadWeaponIndex];
