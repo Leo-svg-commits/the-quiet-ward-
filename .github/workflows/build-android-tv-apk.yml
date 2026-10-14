@@ -1,6 +1,12 @@
 name: Build The Quiet Ward TV APK
 
 on:
+  push:
+    branches:
+      - staging/android-tv-app
+    paths:
+      - 'android-tv/**'
+      - '.github/workflows/build-android-tv-apk.yml'
   workflow_dispatch:
 
 permissions:
