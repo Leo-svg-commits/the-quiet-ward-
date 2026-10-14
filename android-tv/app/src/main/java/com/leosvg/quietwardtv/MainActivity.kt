@@ -48,6 +48,23 @@ class MainActivity : Activity() {
                       var m=document.querySelector('meta[name=viewport]');
                       if(m)m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
                       document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';
+                      var fitStyle=document.getElementById('tv-screen-fit-style');
+                      if(!fitStyle){fitStyle=document.createElement('style');fitStyle.id='tv-screen-fit-style';document.head.appendChild(fitStyle);}
+                      fitStyle.textContent=
+                        '@media (orientation:landscape) and (max-height:800px){'+
+                        '#intro.screen{padding:8px 16px;overflow-x:hidden;overflow-y:auto;place-items:center;}'+
+                        '#intro .panel{width:min(570px,100%);max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box;padding:8px 12px;scrollbar-width:thin;}'+
+                        '#intro .eyebrow{font-size:clamp(8px,1.5vh,10px);}'+
+                        '#intro .rule{margin:clamp(7px,1.4vh,12px) auto;}'+
+                        '#intro h1{font-size:clamp(30px,6.7vh,46px);line-height:.98;}'+
+                        '#intro .subtitle{margin-top:6px;font-size:9px;}'+
+                        '#intro .copy{margin:clamp(8px,1.5vh,13px) auto;font-size:clamp(12px,2.2vh,14px);line-height:1.35;}'+
+                        '#intro .instructions{gap:4px 14px;margin:clamp(8px,1.5vh,13px) auto;font-size:clamp(8px,1.5vh,9px);line-height:1.4;}'+
+                        '#intro .lobby-actions{gap:6px;margin:5px 0;}'+
+                        '#intro .start{padding:8px 12px;font-size:9px;letter-spacing:.12em;}'+
+                        '#intro .footnote{margin-top:8px;font-size:8px;line-height:1.4;}'+
+                        '}@media(max-height:500px){#intro .panel{padding-top:4px;padding-bottom:4px;}#intro .copy{margin:6px auto;}#intro .instructions{margin:6px auto;}#intro .footnote{margin-top:5px;}}';
+
                       if(!document.getElementById('tv-controller-guide')){
                         var style=document.createElement('style');
                         style.id='tv-controller-guide-style';
