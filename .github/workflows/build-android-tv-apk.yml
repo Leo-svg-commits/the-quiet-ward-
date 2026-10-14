@@ -14,15 +14,15 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out TV app branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: staging/android-tv-app
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
