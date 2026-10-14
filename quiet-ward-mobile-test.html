@@ -2240,7 +2240,12 @@
       updateNameTag(localNameTag, username);
       if (peerId) sendNetworkMessage({ type: "rename", name: username });
     }
-    addEventListener("dblclick", () => {
+    addEventListener("dblclick", event => {
+      // Double-clicking the radar opens the field map; elsewhere, keep the existing sprint toggle.
+      if (event.target instanceof Element && event.target.closest("#ghost-radar")) {
+        setMapOpen(true);
+        return;
+      }
       autoRunEnabled = !autoRunEnabled;
       showToast(autoRunEnabled ? "Sprint enabled while holding ↑." : "Sprint disabled.", 1600);
       document.querySelector("#stamina-row").title =
@@ -2660,6 +2665,12 @@
       if (event.button === 2) useWeapon();
     });
     addEventListener("keydown", event => {
+      // Y opens/closes the field map without entering the movement-key set.
+      if (event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        if (!event.repeat) setMapOpen(mapPanel.hidden);
+        return;
+      }
       const forbidden = ["w", "a", "s", "d", " "];
       if (forbidden.includes(event.key.toLowerCase())) {
         event.preventDefault();
