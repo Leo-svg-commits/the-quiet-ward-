@@ -44,7 +44,33 @@ class MainActivity : Activity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 gameView.evaluateJavascript(
-                    "(function(){var m=document.querySelector('meta[name=viewport]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');}document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';})();",
+                    """(function(){
+                      var m=document.querySelector('meta[name=viewport]');
+                      if(m)m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+                      document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';
+                      if(!document.getElementById('tv-controller-guide')){
+                        var style=document.createElement('style');
+                        style.id='tv-controller-guide-style';
+                        style.textContent='#tv-controller-guide{position:fixed;z-index:2147483647;right:12px;top:12px;max-width:250px;padding:10px 12px;background:rgba(5,9,12,.92);border:1px solid #c5ae76;color:#f0dfb6;font:12px/1.5 monospace;box-shadow:0 4px 18px #000;pointer-events:none}#tv-controller-guide strong{display:block;font-size:13px;margin-bottom:4px}#tv-controller-guide .muted{color:#d0d0c0}';
+                        document.head.appendChild(style);
+                        var guide=document.createElement('div');guide.id='tv-controller-guide';
+                        guide.innerHTML='<strong>CONTROLLER GUIDE · SELECT to hide/show</strong><div>Left stick / D-pad: Move and turn</div><div>A / Y / L2: Start or interact</div><div>X / R2: Use weapon</div><div>B / START: Back / escape hiding</div><div>L1 / R1: Sprint (hold)</div><div class="muted">Right stick: Move/turn</div>';
+                        document.body.appendChild(guide);
+                      }
+                      window.__quietWardTvAction=function(action){
+                        var intro=document.querySelector('#intro'),start=document.querySelector('#start');
+                        if(action==='interact'&&intro&&!intro.classList.contains('hidden')&&start){start.click();return;}
+                        var canvas=document.querySelector('canvas');
+                        if(canvas){
+                          var right=action==='weapon';
+                          canvas.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:1,pointerType:'mouse',button:right?2:0,buttons:right?2:1,clientX:innerWidth/2,clientY:innerHeight/2}));
+                        }
+                      };
+                      window.addEventListener('keydown',function(e){
+                        if(e.code==='Tab'){e.preventDefault();var g=document.getElementById('tv-controller-guide');if(g)g.style.display=g.style.display==='none'?'block':'none';}
+                        if(e.code==='ControlLeft'||e.code==='AltRight'){if(!e.repeat&&window.__quietWardTvAction)window.__quietWardTvAction(e.code==='ControlLeft'?'interact':'weapon');}
+                      });
+                    })();""",
                     null
                 )
                 gameView.requestFocus()
@@ -85,7 +111,7 @@ class MainActivity : Activity() {
             val key = mapped.first.replace("\\", "\\\\").replace("'", "\\'")
             val code = mapped.second.replace("'", "\\'")
             val repeat = if (event.repeatCount > 0) "true" else "false"
-            val js = "(function(){if('$type'==='keydown' && '$key'==='Enter'){const intro=document.querySelector('#intro');if(intro && !intro.classList.contains('hidden')){const start=document.querySelector('#start');if(start){start.click();return;}}const a=document.activeElement;if(a && a!==document.body && (a.tagName==='BUTTON'||a.tagName==='INPUT'||a.tagName==='SELECT'||a.getAttribute('role')==='button')){if(typeof a.click==='function'){a.click();return;}}}const e=new KeyboardEvent('$type',{key:'$key',code:'$code',bubbles:true,cancelable:true,repeat:$repeat});window.dispatchEvent(e);})();"
+            val js = "(function(){if('$type'==='keydown' && '$key'==='Enter'){const intro=document.querySelector('#intro');if(intro && !intro.classList.contains('hidden')){const start=document.querySelector('#start');if(start){start.click();return;}}const a=document.activeElement;if(a && a!==document.body && (a.tagName==='BUTTON'||a.tagName==='INPUT'||a.tagName==='SELECT'||a.getAttribute('role')==='button')){if(typeof a.click==='function'){a.click();return;}}}if('$type'==='keydown' && '$code'==='KeyE' && window.__quietWardTvAction){window.__quietWardTvAction('interact');return;}if('$type'==='keydown' && '$code'==='Space' && window.__quietWardTvAction){window.__quietWardTvAction('weapon');return;}const e=new KeyboardEvent('$type',{key:'$key',code:'$code',bubbles:true,cancelable:true,repeat:$repeat});window.dispatchEvent(e);})();"
             runOnUiThread { gameView.evaluateJavascript(js, null) }
             return true
         }
@@ -105,8 +131,8 @@ class MainActivity : Activity() {
             (event.source and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK) {
             val x = event.getAxisValue(MotionEvent.AXIS_X)
             val y = event.getAxisValue(MotionEvent.AXIS_Y)
-            val rx = event.getAxisValue(MotionEvent.AXIS_Z)
-            val ry = event.getAxisValue(MotionEvent.AXIS_RZ)
+            val rx = event.getAxisValue(MotionEvent.AXIS_RX)
+            val ry = event.getAxisValue(MotionEvent.AXIS_RY)
             val wanted = mutableSetOf<String>()
             if (y < -0.45f || ry < -0.65f) wanted.add("ArrowUp")
             if (y > 0.45f || ry > 0.65f) wanted.add("ArrowDown")
