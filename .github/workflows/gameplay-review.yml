@@ -44,7 +44,7 @@ jobs:
           cat /tmp/quiet-ward-server.log
           exit 1
 
-      - name: Test game startup and capture review evidence
+      - name: Test local staging source and capture review evidence
         run: |
           cat > game-review.cjs <<'EOF'
           const { chromium } = require('playwright');
@@ -93,6 +93,24 @@ jobs:
               check('Gameplay HUD becomes visible', await page.locator('#hud').isVisible());
               await page.screenshot({ path: 'game-review-after-start.png', fullPage: true });
 
+              // Check the interactive map controls after gameplay starts.
+              const mapToggle = page.locator('#map-toggle');
+              if (await mapToggle.count()) {
+                await mapToggle.click();
+                await page.waitForTimeout(250);
+                check('Map panel opens from its toggle', await page.locator('#map-panel').isVisible());
+                const closeMap = page.locator('#map-close');
+                if (await closeMap.count()) await closeMap.click();
+                else await mapToggle.click();
+                check('Map panel can be closed', !(await page.locator('#map-panel').isVisible()));
+              } else {
+                check('Map toggle exists', false, 'Expected #map-toggle');
+              }
+
+              // Check visible survival indicators exist, without assuming a specific starting value.
+              check('Player health indicator exists', await page.locator('#player-hearts').count() > 0);
+              check('Stamina indicator exists', await page.locator('#stamina-fill').count() > 0);
+
               const seriousErrors = errors.filter(e => !/favicon|net::ERR_ABORTED/i.test(e));
               check('No browser JavaScript/console errors', seriousErrors.length === 0,
                 seriousErrors.slice(0, 8).join(' | ') || 'none');
@@ -116,6 +134,36 @@ jobs:
           EOF
           node game-review.cjs
 
+      - name: Smoke-test deployed staging URL
+        if: always()
+        continue-on-error: true
+        run: |
+          node - <<'EOF'
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--use-gl=angle', '--use-angle=swiftshader'] });
+            const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+            const errors = [];
+            page.on('pageerror', e => errors.push(e.message));
+            try {
+              const response = await page.goto('https://quiet-ward-test.onrender.com/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+              await page.waitForTimeout(5000);
+              const title = await page.title();
+              const hasCanvas = await page.locator('canvas').count() > 0;
+              const hasStart = await page.locator('#start').count() > 0;
+              const report = { checkedAt: new Date().toISOString(), url: 'https://quiet-ward-test.onrender.com/', status: response?.status() ?? null, title, hasCanvas, hasStart, pageErrors: errors };
+              require('fs').writeFileSync('deployed-staging-smoke-test.json', JSON.stringify(report, null, 2));
+              console.log(JSON.stringify(report, null, 2));
+              await page.screenshot({ path: 'deployed-staging-smoke-test.png', fullPage: true });
+              if (!response || !response.ok() || (!hasCanvas && !hasStart)) process.exitCode = 1;
+            } catch (e) {
+              require('fs').writeFileSync('deployed-staging-smoke-test.json', JSON.stringify({ url: 'https://quiet-ward-test.onrender.com/', error: String(e), pageErrors: errors }, null, 2));
+              console.error(e);
+              process.exitCode = 1;
+            } finally { await browser.close(); }
+          })();
+          EOF
+
       - name: Upload test report and screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -125,5 +173,7 @@ jobs:
             game-review-results.json
             game-review-before-start.png
             game-review-after-start.png
+            deployed-staging-smoke-test.json
+            deployed-staging-smoke-test.png
           if-no-files-found: warn
           retention-days: 14
