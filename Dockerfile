@@ -6,8 +6,7 @@ RUN dotnet publish QuietWardServer.csproj -c Release -o /out
 FROM mcr.microsoft.com/dotnet/runtime:8.0
 WORKDIR /app
 COPY --from=build /out .
-COPY quiet-ward-mobile-gamepad-tv.html./index.html
-./index.html
+COPY quiet-ward-mobile-gamepad-tv.html ./index.html
 COPY README.md ./
 ENV PORT=8000
 EXPOSE 8000
