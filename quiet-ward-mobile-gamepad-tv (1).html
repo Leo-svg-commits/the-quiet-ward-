@@ -1,0 +1,3825 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d10">
+  <title>THE QUIET WARD — Beelitz, 1916</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "IBM Plex Mono", monospace;
+      background: #090d10;
+      color: #d6d6c9;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { background: #090d10; }
+    #game { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .shade {
+      position: fixed; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse at 50% 47%, transparent 25%, rgba(4,7,9,.39) 74%, rgba(2,4,5,.91) 138%),
+        linear-gradient(0deg, rgba(3,5,6,.48), transparent 24%, transparent 75%, rgba(4,6,8,.42));
+    }
+    .grain {
+      position: fixed; inset: -50%; width: 200%; height: 200%; pointer-events: none; opacity: .11;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
+      animation: grain .22s steps(2) infinite;
+    }
+    @keyframes grain { 0% { transform: translate(0,0); } 50% { transform: translate(1%,-1%); } }
+    .hud { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+    .brand { position: absolute; top: 30px; left: 38px; }
+    .eyebrow, .label { color: #a5a392; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; }
+    .brand-title { margin-top: 7px; font: 22px "IM Fell English", Georgia, serif; letter-spacing: .13em; }
+    .objective {
+      position: absolute; right: 38px; top: 30px; text-align: right;
+      font-size: 11px; line-height: 1.9; color: #b9b8a9;
+    }
+    .objective strong { color: #dedcc9; font-weight: 400; letter-spacing: .08em; }
+    .card-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+    .card-slot {
+      width: 31px; height: 21px; border: 1px solid #77776b;
+      color: #77776b; display: grid; place-items: center; font-size: 10px;
+      transition: .25s ease;
+    }
+    .card-slot.found { color: #d8c59a; border-color: #c5ae76; background: #c5ae761b; box-shadow: 0 0 14px #c5ae7630; }
+    .floor-indicator { margin-top: 5px; color: #c5ae76; font-size: 9px; letter-spacing: .14em; }
+    .survival-panel {
+      position: absolute; top: 150px; right: 38px; width: 216px;
+      padding: 11px 12px; border: 1px solid #aaa58a55;
+      background: rgba(8, 11, 12, .76); color: #c3c0ae;
+      font-size: 9px; line-height: 1.6; pointer-events: auto;
+    }
+    .pack-title { display: flex; justify-content: space-between; margin-bottom: 7px; color: #e1ddcb; letter-spacing: .13em; }
+    .pack-title span:last-child { color: #a78f66; }
+    .need-row { display: grid; grid-template-columns: 55px 1fr 32px; align-items: center; gap: 6px; margin: 5px 0; cursor: pointer; }
+    .need-row:hover { color: #f0dfb6; }
+    .need-row:focus-visible { outline: 1px solid #c5ae76; outline-offset: 3px; }
+    .need-track { height: 4px; background: #42433d; }
+    .need-fill { height: 100%; width: 100%; background: #899081; transition: width .3s ease, background .3s ease; }
+    .need-row.low .need-fill { background: #aa6d58; }
+    .stamina-row { display: grid; grid-template-columns: 55px 1fr 32px; align-items: center; gap: 6px; width: 100%; margin: 7px 0; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+    .stamina-row:focus-visible { outline: 1px solid #c5ae76; outline-offset: 3px; }
+    .stamina-track { height: 5px; background: #42433d; }
+    .stamina-fill { width: 100%; height: 100%; background: #b6a16a; transition: width .16s linear; }
+    .stamina-row.low .stamina-fill { background: #aa6d58; }
+    .heart-row { display: flex; justify-content: space-between; align-items: center; margin: 7px 0; color: #d8c5b5; }
+    #player-hearts { color: #cf8979; font-size: 15px; letter-spacing: .12em; }
+    .revive-heart-count { color: #b6a16a; }
+    .pack-items { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 9px; }
+    .pack-items button {
+      border: 1px solid #aaa58a55; background: #dedac111; color: #d6d0bc;
+      padding: 7px 3px; cursor: pointer; font: 8px "IBM Plex Mono", monospace;
+      letter-spacing: .04em; white-space: nowrap;
+    }
+    .pack-items button:hover:not(:disabled) { border-color: #c5ae76; background: #c5ae7620; }
+    .pack-items button:disabled { opacity: .43; cursor: default; }
+    .pack-items button.equipped { border-color: #c5ae76; color: #f0dfb6; background: #c5ae7620; }
+    .pack-separator { height: 1px; margin: 9px 0 7px; background: #aaa58a38; }
+    .weapon-note { margin-top: 7px; color: #969588; font-size: 8px; }
+    .network-tools {
+      position: absolute; top: 108px; right: 38px; display: flex; align-items: center;
+      gap: 7px; pointer-events: auto;
+    }
+    .map-toggle {
+      position: absolute; top: 108px; left: 38px; z-index: 3; pointer-events: auto;
+      border: 1px solid #aaa58a66; background: #090d10d9; color: #d6d0bc;
+      padding: 8px 12px; cursor: pointer; font: 8px "IBM Plex Mono", monospace;
+      letter-spacing: .12em;
+    }
+    .map-toggle:hover, .map-toggle[aria-expanded="true"] { border-color: #c5ae76; color: #f0dfb6; }
+    .map-panel {
+      position: absolute; top: 150px; left: 38px; z-index: 3; width: min(310px, calc(100vw - 36px));
+      padding: 10px; border: 1px solid #aaa58a66; background: rgba(8, 11, 12, .95);
+      color: #dedcc9; pointer-events: auto;
+    }
+    .map-panel[hidden] { display: none; }
+    .map-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .map-header strong { color: #c5ae76; font-size: 9px; font-weight: 400; letter-spacing: .14em; }
+    .map-header button, .map-floors button {
+      border: 1px solid #aaa58a55; background: #090d10d9; color: #d6d0bc;
+      padding: 6px 8px; cursor: pointer; font: 8px "IBM Plex Mono", monospace;
+    }
+    .map-header button:hover, .map-floors button:hover, .map-floors button.selected {
+      border-color: #c5ae76; color: #f0dfb6;
+    }
+    .map-floors { display: flex; gap: 5px; margin-bottom: 8px; }
+    .map-floors button { flex: 1; }
+    .ward-map { display: block; width: 100%; height: auto; border: 1px solid #aaa58a38; background: #111715; }
+    .map-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; color: #aaa99a; font-size: 8px; }
+    .map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .map-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #c5ae76; }
+    .map-dot.you { background: #d7e8df; box-shadow: 0 0 5px #d7e8df; }
+    .map-dot.exit { background: #bd7163; }
+    .map-dot.stairs { border-radius: 1px; background: #92978b; }
+    .map-note { margin-top: 7px; color: #85877e; font-size: 8px; line-height: 1.5; }
+    .ghost-radar {
+      position: absolute; right: 38px; bottom: 66px; width: 154px; padding: 9px;
+      border: 1px solid #aaa58a55; background: rgba(8, 11, 12, .84);
+      color: #c3c0ae; text-align: center;
+    }
+    .radar-heading { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 8px; letter-spacing: .1em; }
+    .radar-heading span:first-child { color: #c5ae76; }
+    .radar-display { display: block; width: 100%; height: auto; }
+    .radar-sweep { transform-origin: 74px 74px; animation: radar-scan 4s linear infinite; }
+    @keyframes radar-scan { to { transform: rotate(360deg); } }
+    .radar-contact { fill: #c6e3d4; filter: drop-shadow(0 0 3px #c6e3d4); }
+    .radar-contact.close { fill: #d47b67; filter: drop-shadow(0 0 5px #ef725d); animation: radar-pulse .7s ease-in-out infinite alternate; }
+    @keyframes radar-pulse { to { opacity: .38; } }
+    .radar-status { margin-top: 3px; color: #939387; font-size: 7px; letter-spacing: .1em; }
+    .ghost-radar.alert .radar-status { color: #d47b67; }
+    .network-tools button, .chat-header button {
+      border: 1px solid #aaa58a55; background: #090d10d9; color: #d6d0bc;
+      padding: 8px 10px; cursor: pointer; font: 8px "IBM Plex Mono", monospace;
+      letter-spacing: .08em;
+    }
+    .network-tools button:hover, .chat-header button:hover { border-color: #c5ae76; color: #f0dfb6; }
+    #connection-state { min-width: 74px; color: #a5a392; font-size: 8px; letter-spacing: .08em; text-align: right; }
+    #voice-button.active { color: #f0dfb6; border-color: #c5ae76; }
+    #voice-button.talking { color: #f0c3ad; border-color: #c48e7e; background: #51272180; }
+    #pvp-toggle { border: 1px solid #aaa58a55; background: #090d10d9; color: #d6d0bc; padding: 8px 10px; cursor: pointer; font: 8px "IBM Plex Mono", monospace; }
+    #pvp-toggle.enabled { border-color: #bc6b5b; color: #f1b8a9; }
+    .pvp-health {
+      position: absolute; left: 50%; top: 28px; width: min(220px, 34vw);
+      transform: translateX(-50%); color: #c3c0ae; font-size: 8px;
+      letter-spacing: .12em; text-align: center;
+    }
+    .pvp-health-track { height: 5px; margin-top: 5px; background: #42413d; }
+    .pvp-health-fill { width: 100%; height: 100%; background: #a96c5b; transition: width .2s ease; }
+    .chat-panel {
+      position: absolute; right: 38px; bottom: 76px; z-index: 3;
+      display: flex; flex-direction: column; width: min(310px, calc(100vw - 36px)); height: 250px;
+      border: 1px solid #aaa58a66; background: rgba(8, 11, 12, .94);
+      color: #dedcc9; pointer-events: auto;
+    }
+    .chat-panel[hidden] { display: none; }
+    .server-panel {
+      position: absolute; top: 150px; right: 38px; z-index: 3; width: min(330px, calc(100vw - 36px));
+      padding: 12px; border: 1px solid #aaa58a66; background: rgba(8, 11, 12, .96);
+      color: #dedcc9; pointer-events: auto; font-size: 9px; line-height: 1.6;
+    }
+    .server-panel[hidden] { display: none; }
+    .server-panel.start-choice { position: fixed; z-index: 7; top: 50%; left: 50%; right: auto; transform: translate(-50%, -50%); width: min(380px, calc(100vw - 32px)); }
+    .profile-panel { display: grid; gap: 8px; }
+    .profile-panel input, .profile-panel select {
+      width: 100%; border: 1px solid #aaa58a55; background: #050707;
+      color: #dedcc9; padding: 9px; font: 10px "IBM Plex Mono", monospace;
+    }
+    .profile-panel button {
+      border: 1px solid #aaa58a55; background: #dedac111; color: #d6d0bc;
+      padding: 9px; cursor: pointer; font: 9px "IBM Plex Mono", monospace;
+    }
+    .profile-panel button:hover { border-color: #c5ae76; }
+    .server-mode-note { margin: 8px 0; color: #aaa99a; font-size: 9px; line-height: 1.6; }
+    .server-panel select {
+      width: 100%; margin-top: 4px; border: 1px solid #aaa58a55; background: #050707;
+      color: #dedcc9; padding: 8px; font: 9px "IBM Plex Mono", monospace;
+    }
+    .lobby-actions { display: flex; justify-content: center; gap: 10px; margin: 0 auto 13px; }
+    .lobby-actions button { min-width: 128px; }
+    .lobby-note { margin: 10px 0; color: #aaa99a; font-size: 9px; line-height: 1.6; }
+    #pvp-defeat { z-index: 8; }
+    #pvp-save-prompt, #pvp-down-screen { z-index: 9; }
+    #pvp-save-prompt .panel, #pvp-down-screen .panel {
+      width: min(450px, 100%); padding: 24px; border: 1px solid #aaa58a66;
+      background: rgba(8, 11, 12, .97);
+    }
+    .save-actions { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+    .save-actions button { padding: 12px 16px; }
+    .server-panel label { display: block; margin-top: 10px; color: #c5ae76; font-size: 8px; letter-spacing: .1em; }
+    .server-panel input[type="text"] {
+      width: 100%; margin-top: 4px; border: 1px solid #aaa58a55; background: #050707;
+      color: #dedcc9; padding: 8px; font: 9px "IBM Plex Mono", monospace;
+    }
+    .server-panel .network-actions { display: flex; gap: 6px; margin-top: 10px; }
+    .server-panel button {
+      flex: 1; border: 1px solid #aaa58a55; background: #090d10d9; color: #d6d0bc;
+      padding: 8px 6px; cursor: pointer; font: 8px "IBM Plex Mono", monospace; letter-spacing: .05em;
+    }
+    .server-panel button:hover { border-color: #c5ae76; color: #f0dfb6; }
+    #server-info { margin-top: 9px; color: #aaa99a; overflow-wrap: anywhere; }
+    .brightness-control { margin-top: 13px; padding-top: 10px; border-top: 1px solid #aaa58a38; }
+    .brightness-control label { display: flex; justify-content: space-between; align-items: center; margin: 0; }
+    .brightness-control input { width: 100%; accent-color: #c5ae76; }
+    .chat-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 10px; border-bottom: 1px solid #aaa58a38; }
+    .chat-header span { color: #c5ae76; font-size: 8px; letter-spacing: .13em; }
+    #chat-log { flex: 1; overflow-y: auto; padding: 8px 10px; font-size: 9px; line-height: 1.6; overflow-wrap: anywhere; }
+    .chat-entry { margin-bottom: 6px; color: #b7b5a9; }
+    .chat-entry strong { color: #dedcc9; font-weight: 500; }
+    .chat-entry.system { color: #a78f66; font-style: italic; }
+    .chat-compose { display: flex; gap: 5px; padding: 7px; border-top: 1px solid #aaa58a38; }
+    .chat-compose input {
+      flex: 1; min-width: 0; border: 1px solid #aaa58a55; background: #050707;
+      color: #dedcc9; padding: 8px; font: 9px "IBM Plex Mono", monospace;
+    }
+    .chat-compose button { border: 1px solid #a78f66; background: #a78f6614; color: #dfd6c0; padding: 0 10px; font: 8px "IBM Plex Mono", monospace; cursor: pointer; }
+    .voice-caution { color: #89897f; padding: 0 9px 7px; font-size: 8px; }
+    .remote-player-label { color: #d2d0bd; font: 10px "IBM Plex Mono", monospace; text-shadow: 0 0 5px #000, 1px 1px 3px #000; white-space: nowrap; }
+    .crosshair {
+      position: absolute; top: 50%; left: 50%; width: 14px; height: 14px;
+      transform: translate(-50%,-50%); opacity: .7;
+    }
+    .crosshair::before, .crosshair::after {
+      content: ""; position: absolute; background: #e1ddcb; box-shadow: 0 0 5px #000;
+    }
+    .crosshair::before { width: 1px; height: 14px; left: 6px; }
+    .crosshair::after { height: 1px; width: 14px; top: 6px; }
+    .bottom-left { position: absolute; bottom: 27px; left: 38px; font-size: 10px; color: #9e9e91; line-height: 1.9; }
+    .camera-zoom {
+      position: absolute; bottom: 88px; left: 38px; display: flex; align-items: center;
+      gap: 8px; color: #c3c0ae; font-size: 9px; letter-spacing: .08em; pointer-events: auto;
+    }
+    .camera-zoom button {
+      width: 30px; height: 28px; border: 1px solid #aaa58a66; background: #090d10d9;
+      color: #d6d0bc; cursor: pointer; font: 15px "IBM Plex Mono", monospace;
+    }
+    .camera-zoom button:hover { border-color: #c5ae76; color: #f0dfb6; }
+    .status { color: #d0c8ac; letter-spacing: .05em; }
+    .hint {
+      position: absolute; bottom: 63px; left: 50%; transform: translateX(-50%);
+      min-height: 19px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+      color: #e1ddcb; white-space: nowrap; text-shadow: 0 2px 7px #000;
+    }
+    .danger {
+      position: absolute; top: 17%; left: 50%; transform: translateX(-50%);
+      color: #c48e7e; font-size: 10px; letter-spacing: .24em; opacity: 0;
+      transition: opacity .5s ease;
+    }
+    .danger.visible { opacity: 1; animation: pulse 1.8s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .42; } }
+    .threat-vignette {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
+      background: radial-gradient(ellipse at center, transparent 42%, rgba(92, 16, 13, .44) 100%);
+      transition: opacity .2s ease;
+    }
+    .flashlight-indicator {
+      position: absolute; bottom: 28px; right: 38px; font-size: 10px;
+      color: #aaa99a; letter-spacing: .1em;
+    }
+    .flashlight-indicator span { color: #e0d8b4; }
+    .screen {
+      position: fixed; inset: 0; z-index: 5; display: grid; place-items: center;
+      padding: 24px; background: radial-gradient(ellipse at 50% 43%, rgba(15,20,21,.74), rgba(4,7,9,.96) 76%);
+      transition: opacity .7s ease, visibility .7s;
+    }
+    .screen[hidden] { display: none; }
+    .screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .panel { width: min(570px, 100%); text-align: center; }
+    .rule { width: 54px; height: 1px; margin: 22px auto; background: #a78f66; }
+    h1 { margin: 0; font: 56px/1.02 "IM Fell English", Georgia, serif; font-weight: 400; letter-spacing: .055em; color: #e1decf; }
+    .subtitle { margin-top: 11px; color: #b8aa88; font-size: 10px; letter-spacing: .28em; text-transform: uppercase; }
+    .copy { margin: 23px auto; max-width: 445px; font: 16px/1.7 "IM Fell English", Georgia, serif; color: #c2c0b3; }
+    .instructions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px;
+      max-width: 395px; margin: 25px auto 29px; text-align: left; font-size: 10px; line-height: 1.7; color: #aaa99a;
+    }
+    .instructions b { color: #dedcc9; font-weight: 400; }
+    .start, .again {
+      border: 1px solid #a78f66; background: #a78f6614; color: #dfd6c0;
+      padding: 14px 29px; cursor: pointer; font: 10px "IBM Plex Mono", monospace;
+      letter-spacing: .2em; text-transform: uppercase; transition: .2s ease;
+    }
+    .start:hover, .again:hover { background: #a78f6630; border-color: #d0b789; }
+    .footnote { margin-top: 24px; color: #797b75; font-size: 9px; line-height: 1.7; }
+    .screen.end { background: radial-gradient(ellipse at center, rgba(47,12,13,.83), rgba(6,6,7,.98) 76%); }
+    .screen.victory { background: radial-gradient(ellipse at center, rgba(31,39,30,.83), rgba(5,8,8,.98) 76%); }
+    .screen.memory { background: radial-gradient(ellipse at center, rgba(49,41,30,.94), rgba(5,7,8,.99) 82%); }
+    .end h1 { font-size: 47px; }
+    .end .copy { max-width: 420px; }
+    #toast {
+      position: fixed; z-index: 4; left: 50%; top: 25%; transform: translate(-50%,-8px);
+      opacity: 0; pointer-events: none; color: #dfd6c0; font: 17px "IM Fell English", Georgia, serif;
+      text-align: center; padding: 12px 20px; background: #0a0d0dd9; border: 1px solid #9a896850;
+      transition: .35s ease;
+    }
+    #toast.show { opacity: 1; transform: translate(-50%,0); }
+    #jumpscare {
+      position: fixed; inset: 0; z-index: 9; display: grid; place-items: center;
+      overflow: hidden; background: #100708; opacity: 0; visibility: hidden;
+      pointer-events: none;
+    }
+    #jumpscare[hidden] { display: none; }
+    #jumpscare.active { visibility: visible; animation: strike .82s steps(3, end) forwards; }
+    #jumpscare svg {
+      width: min(82vw, 620px); height: 94vh; overflow: visible;
+      filter: drop-shadow(0 0 35px #a3211d);
+      animation: lunge .82s cubic-bezier(.12,.8,.2,1) forwards;
+    }
+    @keyframes strike {
+      0% { opacity: 0; background: #f1dfc4; }
+      7% { opacity: 1; background: #6e100f; }
+      18% { background: #080608; }
+      37% { background: #4c0a0c; }
+      53% { background: #080608; }
+      72% { background: #681012; }
+      100% { opacity: 1; background: #090708; }
+    }
+    @keyframes lunge {
+      0% { transform: scale(.24) translateY(24%); }
+      24% { transform: scale(.88) translateY(4%); }
+      39% { transform: scale(.7) translateY(1%); }
+      68% { transform: scale(1.12) translateY(-3%); }
+      100% { transform: scale(1.42) translateY(-6%); }
+    }
+    @media (max-width: 620px) {
+      .brand { left: 18px; top: 18px; }
+      .objective { right: 18px; top: 18px; }
+      .survival-panel { right: 18px; top: 157px; width: 194px; }
+      .network-tools { top: 112px; right: 18px; gap: 4px; }
+      .map-toggle { top: 112px; left: 18px; }
+      .map-panel { top: 151px; left: 18px; width: min(290px, calc(100vw - 36px)); }
+      .ghost-radar { right: 18px; bottom: 56px; width: 132px; }
+      #connection-state { min-width: 55px; font-size: 7px; }
+      .network-tools button { padding: 7px 6px; font-size: 7px; }
+      .chat-panel { right: 18px; bottom: 66px; }
+      .server-panel { top: 153px; right: 18px; }
+      .brand-title { font-size: 17px; }
+      .bottom-left { left: 18px; bottom: 18px; font-size: 9px; }
+      .flashlight-indicator { right: 18px; bottom: 18px; font-size: 9px; }
+      .hint { bottom: 57px; font-size: 9px; }
+      h1 { font-size: 42px; }
+      .instructions { max-width: 330px; gap: 8px 12px; font-size: 9px; }
+    }
+    /* Touch devices: on-screen joystick, no heavy grain layer, no browser gestures on the canvas */
+    .touch-controls { display: none; }
+    .pack-toggle { display: none; }
+    .survival-panel.collapsed { display: none; }
+    @media (pointer: coarse) {
+      .pack-toggle {
+        display: block; position: absolute; top: 108px; left: 92px; z-index: 3; pointer-events: auto;
+        border: 1px solid #aaa58a66; background: #090d10d9; color: #d6d0bc; padding: 8px 12px;
+        font: 8px "IBM Plex Mono", monospace; letter-spacing: .12em; touch-action: manipulation;
+      }
+      .pack-toggle[aria-expanded="true"] { border-color: #c5ae76; color: #f0dfb6; }
+    }
+    @media (pointer: coarse) and (max-width: 620px) { .pack-toggle { top: 112px; left: 72px; } }
+    @media (pointer: coarse) {
+      .grain { display: none; }
+      canvas { touch-action: none; }
+      .touch-controls { display: block; }
+    }
+    .joystick {
+      position: absolute; left: 28px; bottom: 132px; width: 128px; height: 128px;
+      border-radius: 50%; border: 1px solid #aaa58a88; background: rgba(8, 11, 12, .45);
+      pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none;
+    }
+    .touch-fs {
+      position: absolute; left: 28px; bottom: 272px; padding: 8px 10px;
+      border: 1px solid #aaa58a88; background: rgba(8, 11, 12, .55); color: #d6d0bc;
+      font: 8px "IBM Plex Mono", monospace; letter-spacing: .08em;
+      pointer-events: auto; touch-action: manipulation; user-select: none; -webkit-user-select: none;
+    }
+    .joystick.right { left: auto; right: 28px; }
+    @media (pointer: coarse) and (min-height: 600px) { .ghost-radar { bottom: 280px; } }
+    .joystick-knob {
+      position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px;
+      border-radius: 50%; border: 1px solid #c5ae76; background: #c5ae7655; pointer-events: none;
+    }
+    .touch-use {
+      position: absolute; right: 176px; bottom: 150px; width: 64px; height: 64px; border-radius: 50%;
+      border: 1px solid #aaa58a88; background: rgba(8, 11, 12, .55); color: #d6d0bc;
+      font: 9px "IBM Plex Mono", monospace; letter-spacing: .08em;
+      pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none;
+    }
+
+    /* TV / short-screen support (additive; nothing above is changed).
+       1) Any full-screen panel can scroll instead of being clipped. margin:auto keeps it centred when it
+          fits and top-aligns it (instead of cutting off the top and bottom) when it does not.
+       2) On short viewports (Android TV WebViews often report about 960x540) the intro is compacted
+          and padded away from the overscan edge. A small script then scales it to fit if needed. */
+    .screen { overflow-y: auto; overscroll-behavior: contain; }
+    .screen > .panel { margin: auto; }
+    #intro .start:focus, #intro .start:focus-visible {
+      outline: 2px solid #d0b789; outline-offset: 3px; background: #a78f6630; border-color: #d0b789;
+    }
+    @media (max-height: 700px) {
+      #intro {
+        padding: max(12px, 5vh, env(safe-area-inset-top)) max(16px, 5vw, env(safe-area-inset-right))
+                 max(12px, 5vh, env(safe-area-inset-bottom)) max(16px, 5vw, env(safe-area-inset-left));
+      }
+      #intro .rule { margin: clamp(6px, 1.6vh, 22px) auto; }
+      #intro h1 { font-size: clamp(28px, 7.6vh, 56px); }
+      #intro .subtitle { margin-top: 6px; }
+      #intro .copy { margin: clamp(8px, 2vh, 23px) auto; font-size: clamp(12px, 2.5vh, 16px); line-height: 1.5; }
+      #intro .instructions { margin: clamp(8px, 2vh, 25px) auto clamp(10px, 2.4vh, 29px); gap: 4px 18px; line-height: 1.5; }
+      #intro .lobby-actions { margin-bottom: clamp(6px, 1.4vh, 13px); }
+      #intro .start { padding: clamp(8px, 1.8vh, 14px) 24px; }
+      #intro .footnote { margin-top: clamp(8px, 1.8vh, 24px); line-height: 1.5; }
+    }
+  
+    /* Phone layout (additive; only touch devices). Tablets, desktop and TV are not affected by the phone rules.
+       Backpack becomes a centred pop-up; portrait and landscape phones get their own non-overlapping HUD. */
+    @media (pointer: coarse) {
+      .survival-panel {
+        position: fixed; z-index: 6; top: 50%; left: 50%; right: auto; transform: translate(-50%, -50%);
+        width: min(300px, calc(100vw - 32px)); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px);
+        overflow-y: auto; background: rgba(8, 11, 12, .95);
+      }
+      .map-panel, .server-panel:not(.start-choice) { z-index: 5; }
+    }
+    @media (pointer: coarse) and (max-width: 620px) {
+      .brand { top: 14px; }
+      .objective { top: 14px; width: 164px; }
+      .map-toggle { top: 56px; }
+      .pack-toggle { top: 56px; left: 72px; }
+      .network-tools { top: auto; bottom: auto; top: calc(14px + 118px); left: 18px; right: 18px; flex-wrap: wrap; }
+      .map-panel { top: 92px; }
+      .server-panel { top: 190px; }
+      .touch-use { right: calc(50% - 32px); }
+    }
+    @media (pointer: coarse) and (max-height: 520px) {
+      .brand { top: 8px; left: 12px; }
+      .brand .eyebrow { font-size: 7px; }
+      .brand-title { font-size: 14px; margin-top: 3px; }
+      .objective { top: 8px; right: 12px; width: 156px; padding: 7px 8px; font-size: 8px; line-height: 1.35; }
+      .objective .card-row { margin-top: 3px; }
+      #objective-text { margin-top: 4px !important; }
+      .network-tools { top: 8px; left: 50%; right: auto; transform: translateX(-50%); gap: 4px; flex-wrap: nowrap; }
+      .network-tools button { padding: 6px 7px; font-size: 7px; }
+      #connection-state { min-width: 0; font-size: 7px; }
+      .map-toggle { top: 50px; left: 12px; }
+      .pack-toggle { top: 50px; left: 66px; }
+      .camera-zoom { top: 86px; bottom: auto; left: 12px; }
+      .touch-fs { top: 124px; bottom: auto; left: 12px; }
+      .joystick { width: 104px; height: 104px; left: 24px; bottom: 14px; }
+      .joystick.right { left: auto; right: 24px; }
+      .joystick-knob { width: 46px; height: 46px; margin: -23px 0 0 -23px; }
+      .touch-use { right: 140px; bottom: 30px; width: 56px; height: 56px; }
+      .ghost-radar { top: 109px; bottom: auto; right: 12px; width: 86px; padding: 5px; }
+      .bottom-left { left: 140px; bottom: 12px; }
+      .flashlight-indicator { right: 140px; bottom: 12px; }
+      .hint { bottom: 40px; }
+      .pvp-health { top: 44px; }
+      .map-panel { top: 50px; left: 12px; max-height: calc(100vh - 62px); overflow-y: auto; }
+      .server-panel { top: 40px; right: 12px; max-height: calc(100vh - 52px); overflow-y: auto; }
+      .chat-panel { left: 50%; right: auto; transform: translateX(-50%); bottom: 12px; width: min(310px, 50vw); height: min(250px, calc(100vh - 56px)); }
+    }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <div id="game" aria-label="Third-person survival horror game"></div>
+  <div class="shade"></div><div class="threat-vignette" id="threat-vignette"></div><div class="grain"></div>
+  <div class="hud" id="hud" hidden>
+    <div class="brand"><div class="eyebrow">Beelitz · October 1916</div><div class="brand-title">THE QUIET WARD</div></div>
+    <div class="objective">
+      <div class="eyebrow">Recover the ward keycards</div>
+      <div class="card-row" aria-label="Keycards collected"><div class="card-slot">01</div><div class="card-slot">02</div><div class="card-slot">03</div></div>
+      <div id="objective-text" style="margin-top:8px">The gatehouse is locked.</div>
+      <div class="floor-indicator" id="floor-indicator">GROUND FLOOR · 1 / 3</div>
+    </div>
+    <button class="map-toggle" id="map-toggle" type="button" aria-expanded="false" aria-controls="map-panel">MAP</button>
+    <button class="pack-toggle" id="pack-toggle" type="button" aria-expanded="false" aria-controls="survival-panel">BACKPACK</button>
+    <section class="map-panel" id="map-panel" hidden aria-label="Hospital floor map">
+      <div class="map-header">
+        <strong id="map-title">FIELD MAP · GROUND FLOOR</strong>
+        <button id="map-close" type="button">CLOSE</button>
+      </div>
+      <div class="map-floors" aria-label="Choose floor">
+        <button type="button" data-map-floor="0" aria-pressed="true">GROUND</button>
+        <button type="button" data-map-floor="1" aria-pressed="false">SECOND</button>
+        <button type="button" data-map-floor="2" aria-pressed="false">THIRD</button>
+      </div>
+      <svg class="ward-map" viewBox="0 0 300 440" role="img" aria-labelledby="map-title map-description">
+        <desc id="map-description">A schematic map of the hospital showing the current location, ward supply store, stairs and gatehouse exit.</desc>
+        <rect x="11" y="10" width="278" height="420" fill="#202722" stroke="#77786a" stroke-width="1"/>
+        <rect x="119" y="11" width="62" height="418" fill="#343830" stroke="#77786a" stroke-width="1"/>
+        <rect x="12" y="11" width="107" height="418" fill="#252b26"/>
+        <rect x="181" y="11" width="107" height="418" fill="#252b26"/>
+        <g stroke="#66695d" stroke-width="1" opacity=".65">
+          <path d="M12 52H119 M181 52H288 M12 105H119 M181 105H288 M12 158H119 M181 158H288 M12 211H119 M181 211H288 M12 264H119 M181 264H288 M12 317H119 M181 317H288 M12 370H119 M181 370H288"/>
+        </g>
+        <g fill="#a5a392" font-family="monospace" font-size="7" letter-spacing=".8" text-anchor="middle">
+          <text x="65" y="226" transform="rotate(-90 65 226)">WEST WARD</text>
+          <text x="235" y="226" transform="rotate(90 235 226)">EAST WARD</text>
+          <text x="150" y="220" transform="rotate(-90 150 220)">MAIN HALL</text>
+        </g>
+        <g fill="#c5ae76" stroke="#090d10" stroke-width="2">
+          <circle cx="270" cy="141" r="7"/>
+        </g>
+        <text x="270" y="144" fill="#090d10" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle">S</text>
+        <g fill="#bd7163" stroke="#090d10" stroke-width="2">
+          <circle cx="150" cy="17" r="7"/>
+        </g>
+        <text x="150" y="20" fill="#090d10" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle">E</text>
+        <g fill="#92978b" stroke="#090d10" stroke-width="1">
+          <rect x="136" y="352" width="11" height="11" rx="1"/>
+          <rect x="153" y="396" width="11" height="11" rx="1"/>
+        </g>
+        <g id="map-player-marker" transform="translate(142 342)" aria-label="Your location">
+          <circle r="9" fill="#d7e8df" opacity=".22"/>
+          <circle r="4.5" fill="#d7e8df" stroke="#090d10" stroke-width="2"/>
+        </g>
+      </svg>
+      <div class="map-legend">
+        <span><i class="map-dot you"></i> YOU</span>
+        <span><i class="map-dot"></i> SUPPLY STORE</span>
+        <span><i class="map-dot stairs"></i> STAIRS</span>
+        <span><i class="map-dot exit"></i> GATEHOUSE</span>
+      </div>
+      <div class="map-note">GROUND: iron pipe by the store. SECOND: flare pistol and shells at the store; revolver in a desk by the main hall. THIRD: extra shells. Search wards for keycards.</div>
+    </section>
+    <aside class="ghost-radar" id="ghost-radar" aria-label="Nearby ghost radar">
+      <div class="radar-heading"><span>GHOST RADAR</span><span id="radar-floor">FLOOR 1</span></div>
+      <svg class="radar-display" viewBox="0 0 148 148" role="img" aria-label="Radar showing nearby ghosts relative to your facing direction">
+        <circle cx="74" cy="74" r="66" fill="#101a17" stroke="#68776a" stroke-width="1"/>
+        <circle cx="74" cy="74" r="44" fill="none" stroke="#536456" stroke-width="1" opacity=".72"/>
+        <circle cx="74" cy="74" r="22" fill="none" stroke="#536456" stroke-width="1" opacity=".72"/>
+        <path d="M8 74H140M74 8V140" stroke="#536456" stroke-width=".7" opacity=".55"/>
+        <path class="radar-sweep" d="M74 74L74 9A65 65 0 0 1 120 28Z" fill="#97b69d" opacity=".16"/>
+        <path d="M74 67L69 78L74 75L79 78Z" fill="#e4e2d1" stroke="#0b100e" stroke-width="1"/>
+        <g id="radar-contacts"></g>
+      </svg>
+      <div class="radar-status" id="radar-status" aria-live="polite">SCANNING · NO CONTACTS</div>
+    </aside>
+    <aside class="survival-panel" id="survival-panel" aria-label="Backpack supplies">
+      <div class="pack-title"><span>FIELD BACKPACK</span><span>SUPPLIES</span></div>
+      <div class="need-row" id="thirst-row" role="button" tabindex="0" aria-label="Use one water supply to restore thirst" title="Click to drink carried water"><span>WATER</span><div class="need-track"><div class="need-fill" id="thirst-fill"></div></div><span id="thirst-value">100%</span></div>
+      <div class="need-row" id="hunger-row" role="button" tabindex="0" aria-label="Eat one ration to restore food" title="Click to eat a carried ration"><span>FOOD</span><div class="need-track"><div class="need-fill" id="hunger-fill"></div></div><span id="hunger-value">100%</span></div>
+      <div class="stamina-row" id="stamina-row" title="Double-click anywhere to toggle sprint" aria-label="Stamina"><span>STAMINA</span><div class="stamina-track"><div class="stamina-fill" id="stamina-fill"></div></div><span id="stamina-value">100%</span></div>
+      <div class="heart-row"><span>HEALTH</span><span id="player-hearts" aria-label="3 of 3 hearts">♥ ♥ ♥</span></div>
+      <div class="heart-row"><span>RESCUE</span><span class="revive-heart-count"><span id="revive-hearts">5</span> / 5 hearts</span></div>
+      <div class="pack-items">
+        <button id="drink-water" type="button" disabled>DRINK · <span id="water-count">0</span></button>
+        <button id="eat-ration" type="button" disabled>EAT · <span id="ration-count">0</span></button>
+      </div>
+      <div class="pack-separator"></div>
+      <div class="pack-items">
+        <button id="equip-pipe" type="button" disabled>IRON PIPE</button>
+        <button id="equip-flare" type="button" disabled>FLARE · <span id="flare-count">0</span></button>
+        <button id="equip-revolver" type="button" disabled>REVOLVER · <span id="revolver-count">0</span></button>
+      </div>
+      <div class="weapon-note">RIGHT CLICK · USE EQUIPPED WEAPON</div>
+    </aside>
+    <div class="crosshair"></div>
+    <div class="danger" id="danger">SOMETHING IS NEAR</div>
+    <div class="bottom-left"><div class="eyebrow">Status</div><div class="status" id="status">ALONE IN THE WARD</div></div>
+    <div class="pvp-health" id="pvp-health" hidden>DUEL HEALTH · 100%<div class="pvp-health-track"><div id="pvp-health-fill" class="pvp-health-fill"></div></div></div>
+    <div class="camera-zoom" aria-label="Camera zoom controls">
+      <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+      <span id="zoom-level">100%</span>
+      <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+    </div>
+    <div class="touch-controls" id="touch-controls">
+      <button class="touch-fs" id="touch-fs" type="button">FULLSCREEN</button>
+      <div class="joystick" id="joystick" aria-label="Move joystick"><div class="joystick-knob" id="joystick-knob"></div></div>
+      <div class="joystick right" id="joystick-turn" aria-label="Turn joystick"><div class="joystick-knob" id="joystick-turn-knob"></div></div>
+      <button class="touch-use" id="touch-use" type="button" aria-label="Use equipped weapon">USE</button>
+    </div>
+    <div class="hint" id="hint"></div>
+    <div class="flashlight-indicator">FLASHLIGHT &nbsp;<span id="flash-state">ON · FLICKERING</span></div>
+    <div class="network-tools">
+      <span id="connection-state">CONNECTING…</span>
+      <button id="pvp-toggle" type="button" aria-pressed="false">PVP OFF</button>
+      <button id="voice-button" type="button">ENABLE VOICE</button>
+      <button id="chat-toggle" type="button" aria-expanded="false">CHAT</button>
+      <button id="server-toggle" type="button" aria-expanded="false">SETTINGS</button>
+    </div>
+    <section class="chat-panel" id="chat-panel" hidden aria-label="Multiplayer chat">
+      <header class="chat-header">
+        <span id="chat-room-label">WARD RADIO · CONNECTING</span>
+        <button id="chat-close" type="button" aria-label="Close chat">CLOSE</button>
+      </header>
+      <div id="chat-log" role="log" aria-live="polite"></div>
+      <form class="chat-compose" id="chat-form">
+        <input id="chat-input" maxlength="240" autocomplete="off" placeholder="Message the ward…" aria-label="Chat message">
+        <button type="submit">SEND</button>
+      </form>
+      <div class="voice-caution">VOICE IS OPTIONAL · HOLD V OR HOLD THE VOICE BUTTON TO TALK</div>
+    </section>
+    <section class="server-panel" id="server-panel" hidden aria-label="Server and brightness settings">
+      <header class="chat-header">
+        <span>GAME SETTINGS</span>
+        <button id="server-close" type="button">CLOSE</button>
+      </header>
+      <label for="server-address">SERVER ADDRESS</label>
+      <input id="server-address" type="text" inputmode="url" autocomplete="url" spellcheck="false">
+      <label for="server-mode">SERVER MODE</label>
+      <select id="server-mode"><option value="local">LOCAL · SAME NETWORK</option><option value="global">GLOBAL · INTERNET</option></select>
+      <div id="server-mode-note" class="server-mode-note">Use the host's LAN address. Both players must be on the same network.</div>
+      <label for="room-code">ROOM CODE</label>
+      <input id="room-code" type="text" maxlength="24" autocomplete="off" spellcheck="false" value="ward">
+      <div class="network-actions">
+        <button id="server-create" type="button">CREATE ROOM</button>
+        <button id="server-connect" type="button">JOIN ROOM</button>
+        <button id="server-share" type="button">COPY INVITE</button>
+      </div>
+      <div id="server-info" role="status">The host must run run-game.ps1. Global rooms require an internet-reachable HTTPS/WSS host.</div>
+      <div class="brightness-control">
+        <label for="brightness-slider"><span>BRIGHTNESS</span><span id="brightness-value">200%</span></label>
+        <input id="brightness-slider" type="range" min="1.1" max="4" step="0.1" value="2">
+      </div>
+    </section>
+  </div>
+  <div id="toast" role="status"></div>
+  <section class="screen memory" id="story-memory" hidden aria-labelledby="memory-title">
+    <div class="panel">
+      <div class="eyebrow">A fevered wartime memory · 1916</div><div class="rule"></div>
+      <h1 id="memory-title">THE GIFT</h1>
+      <p class="copy">The corridor folds into a shell-torn field. In this fractured, impossible memory, a young dispatch runner named Adolf Hitler presses a service revolver into your hands and vanishes into the smoke. The hospital answers with a roar from somewhere below.</p>
+      <p class="footnote">A fictional, dreamlike horror scene—not a historical account or an endorsement.</p>
+      <button class="again" id="memory-continue" type="button">Return to the ward</button>
+    </div>
+  </section>
+  <div id="jumpscare" role="alert" aria-label="The Beast has caught you" hidden>
+    <svg viewBox="0 0 360 520" aria-hidden="true">
+      <path d="M180 14C98 18 46 80 57 185c5 53-21 98-31 157-9 50 12 99 49 116 20 41 56 56 105 47 47 11 88-7 103-48 39-20 50-67 42-113-11-59-34-104-29-159C305 78 254 20 180 14Z" fill="#090a0b"/>
+      <path d="M79 172c28-28 66-30 94 0-30 13-62 16-94 0ZM281 172c-28-28-66-30-94 0 30 13 62 16 94 0Z" fill="#b8a88a"/>
+      <path d="m174 166 8 43 22 24-23 9-17-20 4-40Z" fill="#292421"/>
+      <path d="M133 277c26-19 48-16 67-10 20-8 45-9 68 9-21 57-92 83-135 1Z" fill="#080708"/>
+      <path d="m147 278 16 5-5 31-14-12Zm33 1 15 1-1 35-15-2Zm33-1 16-3 8 28-15 10Zm34-3 14-3 9 25-13 10Z" fill="#a69579"/>
+      <path d="M78 202 16 303l51-16-26 100 72-120Zm204 0 62 101-52-16 27 100-73-120Z" fill="#090a0b"/>
+    </svg>
+  </div>
+  <section class="screen" id="intro">
+    <div class="panel">
+      <div class="eyebrow">An abandoned military sanatorium</div>
+      <div class="rule"></div>
+      <h1>THE QUIET<br>WARD</h1>
+      <div class="subtitle">Beelitz-Heilstätten · 1916</div>
+      <p class="copy">The night orderly never returned. Somewhere beyond these wards, the gatehouse is still locked—and something is walking the halls.</p>
+      <div class="instructions">
+        <div><b>↑ / ↓</b> &nbsp;Walk forward / back</div>
+        <div><b>← / →</b> &nbsp;Turn to look around</div>
+        <div><b>DOUBLE-CLICK ANYWHERE</b> &nbsp;Toggle sprint; hold ↑ to run</div>
+        <div><b>CLICK</b> &nbsp;Take items / shine light</div>
+        <div><b>CLICK</b> &nbsp;Climb stairs / hide</div>
+      </div>
+      <div class="lobby-actions">
+        <button class="start" id="profile-open" type="button">Profile / sign in</button>
+      </div>
+      <div class="lobby-actions">
+        <button class="start" id="create-server-open" type="button">Create server</button>
+        <button class="start" id="join-server-open" type="button">Join server</button>
+      </div>
+      <button class="start" id="start">Enter the ward</button>
+      <div class="footnote">Choose local network or global internet server mode. Enable PvP once connected.<br>Find three keycards and reach the gatehouse.</div>
+    </div>
+  </section>
+  <section class="server-panel start-choice" id="start-server-panel" hidden aria-label="Create or join multiplayer server">
+    <header class="chat-header"><span id="start-server-title">MULTIPLAYER SERVER</span><button id="start-server-close" type="button">CLOSE</button></header>
+    <p id="start-server-note" class="lobby-note">Select a server mode and provide the host address.</p>
+    <label for="start-server-mode">SERVER MODE</label>
+    <select id="start-server-mode"><option value="local">LOCAL · SAME NETWORK</option><option value="global">GLOBAL · INTERNET</option></select>
+    <label for="start-server-address">SERVER ADDRESS</label>
+    <input id="start-server-address" type="text" inputmode="url" autocomplete="url" spellcheck="false">
+    <label for="start-room-code">ROOM CODE</label>
+    <input id="start-room-code" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+    <button id="start-server-submit" type="button">CONNECT</button>
+    <div id="start-server-info" role="status" class="lobby-note">The server program must be running on the host computer.</div>
+  </section>
+  <section class="server-panel start-choice profile-panel" id="profile-panel" hidden aria-label="Account and character profile">
+    <header class="chat-header"><span>WARD IDENTITY</span><button id="profile-close" type="button">CLOSE</button></header>
+    <label for="profile-username">USERNAME</label>
+    <input id="profile-username" type="text" maxlength="18" autocomplete="username" placeholder="3–18 letters, numbers, _ or -">
+    <label for="profile-password">PASSWORD · 8+ CHARACTERS FOR ACCOUNT</label>
+    <input id="profile-password" type="password" maxlength="128" autocomplete="current-password">
+    <label for="profile-action">ACCOUNT ACTION</label>
+    <select id="profile-action"><option value="login">SIGN IN</option><option value="signup">CREATE ACCOUNT</option></select>
+    <label for="profile-coat">COAT COLOR</label>
+    <select id="profile-coat">
+      <option value="field">FIELD GREEN</option><option value="charcoal">CHARCOAL</option>
+      <option value="brown">WORN BROWN</option><option value="blue">MUTED BLUE</option>
+    </select>
+    <button id="profile-submit" type="button">SIGN IN</button>
+    <button id="profile-guest" type="button">CONTINUE AS GUEST</button>
+    <div id="profile-info" role="status" class="lobby-note">Create an account on a secure server, or continue with a name saved in this browser.</div>
+  </section>
+  <section class="screen end" id="game-over" hidden>
+    <div class="panel">
+      <div class="eyebrow">Patient record · 04:17</div><div class="rule"></div>
+      <h1>THE WARD<br>KEEPS ITS OWN</h1>
+      <p class="copy">The darkness closes over you. The corridor falls quiet once more.</p>
+      <button class="again" id="restart">Return to the beginning</button>
+    </div>
+  </section>
+  <section class="screen victory" id="victory" hidden>
+    <div class="panel">
+      <div class="eyebrow">Beelitz · 04:32</div><div class="rule"></div>
+      <h1>THE GATE<br>IS OPEN</h1>
+      <p class="copy">Cold night air. Pale moonlight. Behind you, the hospital waits in silence.</p>
+      <button class="again" id="escape">Leave the ward</button>
+    </div>
+  </section>
+  <section class="screen end" id="pvp-defeat" hidden>
+    <div class="panel">
+      <div class="eyebrow">Multiplayer duel</div><div class="rule"></div>
+      <h1>YOU ARE<br>DOWN</h1>
+      <p class="copy">Your opponent won this round. Recover and try again.</p>
+      <button class="again" id="pvp-respawn" type="button">Respawn</button>
+    </div>
+  </section>
+  <section class="screen" id="pvp-save-prompt" hidden aria-label="Teammate rescue request">
+    <div class="panel">
+      <div class="eyebrow">A companion is down</div><div class="rule"></div>
+      <h1>WILL YOU<br>SAVE THEM?</h1>
+      <p class="copy" id="pvp-save-copy">Give two of your five rescue hearts to revive your companion with one health heart.</p>
+      <div class="save-actions">
+        <button class="again" id="pvp-save-accept" type="button">GIVE 2 HEARTS · SAVE</button>
+        <button class="again" id="pvp-save-decline" type="button">NO</button>
+      </div>
+    </div>
+  </section>
+  <section class="screen" id="pvp-down-screen" hidden aria-label="Waiting for rescue">
+    <div class="panel">
+      <div class="eyebrow">Multiplayer duel</div><div class="rule"></div>
+      <h1>YOU ARE<br>DOWN</h1>
+      <p class="copy">A living teammate can spend two rescue hearts to bring you back. Waiting for help…</p>
+      <button class="again" id="pvp-give-up" type="button">GIVE UP</button>
+    </div>
+  </section>
+
+  <script>
+    /* TV fit (additive, independent of the game code): if the intro panel is still taller than the
+       visible area after the CSS compaction, scale it down to fit (never below 55%); below that the
+       intro scrolls. Re-measured on resize, rotation, fullscreen and font load. */
+    (function () {
+      var intro = document.getElementById("intro");
+      var panel = intro && intro.querySelector(".panel");
+      if (!panel) return;
+      var queued = false;
+      function fit() {
+        queued = false;
+        panel.style.zoom = "";
+        if (intro.classList.contains("hidden")) return;
+        var cs = getComputedStyle(intro);
+        var avail = intro.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        var need = panel.offsetHeight;
+        if (avail > 0 && need > avail) panel.style.zoom = Math.max(0.55, avail / need).toFixed(3);
+      }
+      function queue() { if (!queued) { queued = true; requestAnimationFrame(fit); } }
+      addEventListener("resize", queue);
+      addEventListener("orientationchange", queue);
+      addEventListener("load", queue);
+      document.addEventListener("fullscreenchange", queue);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(queue);
+      if (window.ResizeObserver) new ResizeObserver(queue).observe(intro);
+      fit();
+    })();
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+
+    const mount = document.querySelector("#game");
+    // Primary pointer is a finger (phones/tablets). Desktop and mouse-driven laptops are unaffected.
+    const isTouchDevice = matchMedia("(pointer: coarse)").matches;
+    // Desktop keeps the original 1.7 cap; touch screens render closer to native sharpness.
+    const maxPixelRatio = isTouchDevice ? 2 : 1.7;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x11191d);
+    scene.fog = new THREE.FogExp2(0x11191d, 0.027);
+
+    const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 90);
+    let cameraDistance = 5.2;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, maxPixelRatio));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    mount.appendChild(renderer.domElement);
+
+    const clock = new THREE.Clock();
+    const colliders = [];
+    const wallMeshes = [];
+    const wallMeshesByFloor = [];
+    const interactables = [];
+    const hideSpots = [];
+    const keyMeshes = [];
+    const keysByFloor = [];
+    const ghosts = [];
+    const world = new THREE.Group();
+    scene.add(world);
+    const floorHeight = 6.2;
+    const floorGroups = [world];
+
+    const mat = (color, roughness = 0.9, extra = {}) =>
+      new THREE.MeshStandardMaterial({ color, roughness, ...extra });
+    const plaster = mat(0x55544b);
+    const plasterDark = mat(0x3a3b36);
+    const floorMat = mat(0x41413b);
+    const ceilingMat = mat(0x343733);
+    const woodMat = mat(0x302a24);
+    const rustMat = mat(0x674438, 0.8, { metalness: 0.35 });
+    const metalMat = mat(0x6b716b, 0.48, { metalness: 0.72 });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x53646a, emissive: 0x192a32, emissiveIntensity: 0.65,
+      transparent: true, opacity: 0.46, roughness: 0.18, side: THREE.DoubleSide
+    });
+    const leafMat = mat(0x354437, 1);
+    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x090c10 });
+    const wallTexture = makeWallTexture();
+    plaster.map = wallTexture;
+    plaster.map.colorSpace = THREE.SRGBColorSpace;
+    const floorTexture = makeFloorTexture();
+    floorMat.map = floorTexture;
+    floorMat.map.colorSpace = THREE.SRGBColorSpace;
+
+    function makeWallTexture() {
+      const c = document.createElement("canvas");
+      c.width = 256; c.height = 256;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#79756a"; ctx.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 1800; i++) {
+        const x = Math.random() * 256, y = Math.random() * 256;
+        ctx.fillStyle = Math.random() > .5 ? "rgba(24,28,26,.14)" : "rgba(204,193,164,.12)";
+        ctx.fillRect(x, y, Math.random() * 7 + 1, Math.random() * 3 + 1);
+      }
+      for (let i = 0; i < 17; i++) {
+        const x = Math.random() * 256, y = Math.random() * 256;
+        ctx.fillStyle = "rgba(38,39,33,.32)";
+        ctx.beginPath(); ctx.ellipse(x, y, Math.random() * 23 + 6, Math.random() * 9 + 3, Math.random(), 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(190,174,137,.3)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x - 6, y); ctx.lineTo(x + 8, y - 5); ctx.lineTo(x + 15, y + 2); ctx.stroke();
+      }
+      const texture = new THREE.CanvasTexture(c);
+      texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(2.2, 1);
+      return texture;
+    }
+
+    function makeFloorTexture() {
+      const c = document.createElement("canvas");
+      c.width = 256; c.height = 256;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#55534b"; ctx.fillRect(0, 0, 256, 256);
+      for (let y = 0; y < 256; y += 42) {
+        for (let x = 0; x < 256; x += 58) {
+          const jx = (Math.random() - .5) * 5, jy = (Math.random() - .5) * 5;
+          ctx.fillStyle = ["#625e53", "#514e47", "#59564c"][Math.floor(Math.random() * 3)];
+          ctx.fillRect(x + jx, y + jy, 56, 40);
+          ctx.strokeStyle = "rgba(24,25,23,.62)"; ctx.strokeRect(x + jx, y + jy, 56, 40);
+        }
+      }
+      const texture = new THREE.CanvasTexture(c);
+      texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(4, 9);
+      return texture;
+    }
+
+    function box(parent, x, y, z, sx, sy, sz, material, options = {}) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = options.castShadow !== false;
+      mesh.receiveShadow = options.receiveShadow !== false;
+      parent.add(mesh);
+      if (options.collision) {
+        colliders.push({ minX: x - sx / 2, maxX: x + sx / 2, minZ: z - sz / 2, maxZ: z + sz / 2 });
+      }
+      return mesh;
+    }
+
+    function floor(x, z, sx, sz, material = floorMat, y = 0) {
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(sx, sz), material);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(x, y, z);
+      mesh.receiveShadow = true;
+      world.add(mesh);
+      return mesh;
+    }
+
+    function wall(x, z, sx, sz, height = 4.5, material = plaster) {
+      const mesh = box(world, x, height / 2, z, sx, height, sz, material, { collision: true });
+      mesh.castShadow = true;
+      mesh.userData.wallCollider = true;
+      wallMeshes.push(mesh);
+      return mesh;
+    }
+
+    function wallLineX(z, minX, maxX, gapX, gapWidth) {
+      const half = gapWidth / 2;
+      if (gapX - half > minX) wall((minX + gapX - half) / 2, z, gapX - half - minX, .32);
+      if (gapX + half < maxX) wall((gapX + half + maxX) / 2, z, maxX - gapX - half, .32);
+      box(world, gapX - half + .09, 2.2, z, .16, 4.4, .2, woodMat);
+      box(world, gapX + half - .09, 2.2, z, .16, 4.4, .2, woodMat);
+      box(world, gapX, 4.3, z, gapWidth, .18, .34, plasterDark);
+    }
+
+    function wallLineZ(x, startZ, endZ, doorCenters) {
+      const halfDoor = 1.35;
+      let cursor = startZ;
+      for (const center of doorCenters) {
+        const start = center - halfDoor;
+        if (start > cursor) wall(x, (cursor + start) / 2, .32, start - cursor);
+        box(world, x, 2.2, center - halfDoor + .09, .2, 4.4, .16, woodMat);
+        box(world, x, 2.2, center + halfDoor - .09, .2, 4.4, .16, woodMat);
+        box(world, x, 4.3, center, .34, .18, halfDoor * 2, plasterDark);
+        cursor = center + halfDoor;
+      }
+      if (cursor < endZ) wall(x, (cursor + endZ) / 2, .32, endZ - cursor);
+    }
+
+    function makeWindow(x, z, width = 2.25, y = 2.55) {
+      const pane = box(world, x, y, z, .12, 1.75, width, glassMat, { castShadow: false });
+      box(world, x, y - .94, z, .27, .12, width + .15, rustMat);
+      box(world, x, y + .94, z, .27, .12, width + .15, rustMat);
+      box(world, x, y, z - width / 2, .27, 1.95, .12, rustMat);
+      box(world, x, y, z + width / 2, .27, 1.95, .12, rustMat);
+      box(world, x, y, z, .18, 1.76, .08, rustMat);
+      if (Math.random() > .4) {
+        const crack = new THREE.Mesh(new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(x - .08, y + .65, z - .5),
+          new THREE.Vector3(x - .08, y + .1, z - .13),
+          new THREE.Vector3(x - .08, y - .25, z - .32),
+          new THREE.Vector3(x - .08, y - .82, z + .24)
+        ]), new THREE.LineBasicMaterial({ color: 0xabb8b7, transparent: true, opacity: .37 }));
+        world.add(crack);
+      }
+      return pane;
+    }
+
+    function addFixtureLight(x, z, color = 0x8c9a92, intensity = 1.2) {
+      const light = new THREE.PointLight(color, intensity, 8, 2);
+      light.position.set(x, 3.35, z);
+      world.add(light);
+      box(world, x, 4.26, z, .45, .12, .72, metalMat);
+      return light;
+    }
+
+    function makeBed(x, z, angle = 0) {
+      const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = angle; world.add(g);
+      box(g, 0, .43, 0, 1.35, .14, 2.55, rustMat);
+      box(g, 0, .57, -.1, 1.19, .17, 2.27, mat(0x888176));
+      box(g, 0, .69, .82, .89, .15, .5, mat(0xaaa18d));
+      for (const sx of [-.56, .56]) for (const sz of [-1.07, 1.07])
+        box(g, sx, .21, sz, .08, .42, .08, metalMat);
+      box(g, 0, .94, -1.26, 1.5, .08, .08, rustMat);
+      hideSpots.push({ x: x + 1.15, z, label: "BED" });
+      return g;
+    }
+
+    function makeCart(x, z, angle = 0) {
+      const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = angle; world.add(g);
+      box(g, 0, .78, 0, .9, .12, 1.55, rustMat);
+      for (const sx of [-.36, .36]) for (const sz of [-.62, .62]) {
+        box(g, sx, .43, sz, .07, .68, .07, metalMat);
+        const wheel = new THREE.Mesh(new THREE.TorusGeometry(.11, .035, 5, 10), metalMat);
+        wheel.rotation.y = Math.PI / 2; wheel.position.set(sx, .13, sz); g.add(wheel);
+      }
+      box(g, 0, 1.19, -.48, .68, .06, .48, mat(0x959188));
+      return g;
+    }
+
+    function makeWardrobe(x, z) {
+      const g = new THREE.Group(); g.position.set(x, 0, z); world.add(g);
+      box(g, 0, 1.17, 0, 1.35, 2.34, .65, woodMat, { collision: true });
+      box(g, -.32, 1.17, -.345, .63, 2.2, .06, mat(0x494137));
+      box(g, .32, 1.17, -.345, .63, 2.2, .06, mat(0x494137));
+      box(g, -.055, 1.15, -.39, .035, .18, .035, metalMat);
+      box(g, .055, 1.15, -.39, .035, .18, .035, metalMat);
+      hideSpots.push({ x, z: z - .95, label: "WARDROBE" });
+      return g;
+    }
+
+    function makePoster(x, y, z, turn = 0) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512; canvas.height = 640;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#b5aa8b"; ctx.fillRect(0, 0, 512, 640);
+      ctx.fillStyle = "#635b4a"; ctx.fillRect(20, 20, 472, 600);
+      ctx.fillStyle = "#b5aa8b"; ctx.fillRect(29, 29, 454, 582);
+      ctx.fillStyle = "#453d34"; ctx.textAlign = "center";
+      ctx.font = "bold 30px Georgia"; ctx.fillText("HISTORIC PATIENT ROOM", 256, 81);
+      ctx.font = "italic 24px Georgia"; ctx.fillText("Ward 6 · Room 14", 256, 119);
+      ctx.fillStyle = "#706858"; ctx.fillRect(146, 150, 220, 247);
+      ctx.fillStyle = "#3f4542"; ctx.beginPath(); ctx.ellipse(256, 223, 56, 68, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#4e514b"; ctx.beginPath(); ctx.moveTo(175, 380); ctx.quadraticCurveTo(184, 279, 256, 278); ctx.quadraticCurveTo(335, 285, 343, 380); ctx.fill();
+      ctx.fillStyle = "#463e34"; ctx.font = "bold 34px Georgia"; ctx.fillText("THE FÜHRER'S ROOM", 256, 461);
+      ctx.font = "22px Georgia"; ctx.fillText("Keep this room as it was.", 256, 510);
+      ctx.font = "italic 19px Georgia"; ctx.fillText("The portrait has been turned away.", 256, 559);
+      for (let i = 0; i < 180; i++) {
+        ctx.fillStyle = `rgba(60,48,32,${Math.random() * .17})`;
+        ctx.fillRect(Math.random() * 512, Math.random() * 640, 3 + Math.random() * 22, 1 + Math.random() * 3);
+      }
+      const mirrored = document.createElement("canvas");
+      mirrored.width = canvas.width;
+      mirrored.height = canvas.height;
+      const mirroredContext = mirrored.getContext("2d");
+      mirroredContext.translate(mirrored.width, 0);
+      mirroredContext.scale(-1, 1);
+      mirroredContext.drawImage(canvas, 0, 0);
+      const texture = new THREE.CanvasTexture(mirrored);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      const poster = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 2.1), new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
+      poster.position.set(x, y, z); poster.rotation.y = turn; world.add(poster);
+    }
+
+    function addVines(x, z, height = 5.2, count = 6) {
+      for (let i = 0; i < count; i++) {
+        const sway = (Math.random() - .5) * 1.2;
+        const path = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(x + sway, height, z),
+          new THREE.Vector3(x + sway * .4, height * .69, z + (Math.random() - .5)),
+          new THREE.Vector3(x + sway + .38, height * .38, z + (Math.random() - .5) * 1.2),
+          new THREE.Vector3(x + sway + .1, .1, z + (Math.random() - .5) * 1.6)
+        ]);
+        world.add(new THREE.Mesh(new THREE.TubeGeometry(path, 18, .032, 4, false), mat(0x46543a)));
+        for (let j = 0; j < 5; j++) {
+          const t = .2 + Math.random() * .72;
+          const point = path.getPoint(t);
+          const leaf = new THREE.Mesh(new THREE.SphereGeometry(.12 + Math.random() * .08, 5, 4), leafMat);
+          leaf.position.copy(point); leaf.scale.set(1.6, .45, .9); leaf.rotation.z = Math.random() * 2; world.add(leaf);
+        }
+      }
+    }
+
+    function buildHospital() {
+      floor(0, 0, 7.5, 64);
+      floor(-10.7, 0, 14, 64);
+      floor(10.7, 0, 14, 64);
+      box(world, 0, 4.54, 0, 7.48, .22, 64, ceilingMat, { castShadow: false });
+      for (const side of [-1, 1]) {
+        box(world, side * 10.65, 4.54, -20, 13.8, .22, 24, ceilingMat, { castShadow: false });
+        box(world, side * 10.65, 4.54, 20, 13.8, .22, 24, ceilingMat, { castShadow: false });
+        const zDoors = [-24, -16, -8, 0, 8, 16, 24];
+        wallLineZ(side * 3.75, -32, 32, zDoors);
+        wall(side * 17.6, 0, .45, 64, 4.5, plasterDark);
+        for (let i = 0; i < 8; i++) {
+          const z = -28 + i * 8;
+          if (i > 0) wallLineX(z, side === 1 ? 4 : -16, side === 1 ? 16 : -4, side * 5.4, 2.45);
+        }
+        for (let z = -27; z <= 27; z += 9) {
+          makeWindow(side * 17.31, z, 2.35, 2.72);
+          if (!isTouchDevice) { // 42 extra per-pixel lights across 3 floors; too heavy for mobile GPUs
+            const glow = new THREE.PointLight(0x8fa8b2, 1.4, 12, 2);
+            glow.position.set(side * 16.4, 2.5, z); world.add(glow);
+          }
+        }
+        for (let z = -25; z < 29; z += 8) {
+          for (let col = 0; col < 2; col++) {
+            const x = side * (8 + col * 5.4);
+            makeBed(x, z + 2.7, side === -1 ? Math.PI : 0);
+          }
+          if (Math.random() > .36) makeCart(side * 7.2, z + 4.7, side === 1 ? .1 : -.12);
+          if (z === -25 || z === -9 || z === 7 || z === 23) makeWardrobe(side * 14.55, z + 5.45);
+        }
+        const balcony = box(world, side * 12.1, 4.28, 0, 8.9, .26, 18.4, mat(0x393a35));
+        balcony.castShadow = true;
+        for (let z = -9; z <= 9; z += 3) {
+          box(world, side * 7.7, 4.85, z, .09, .95, .09, rustMat);
+        }
+        box(world, side * 10, 5.32, -9.1, 4.7, .1, .1, rustMat);
+        box(world, side * 10, 5.32, 9.1, 4.7, .1, .1, rustMat);
+      }
+      wall(0, -32.15, 35.4, .5, 4.5, plasterDark);
+      wall(0, 32.15, 35.4, .5, 4.5, plasterDark);
+      for (let x = -14; x <= 14; x += 4) {
+        box(world, x, 3.93, -32.1, .28, .75, .65, mat(0x3d3932));
+      }
+      for (const z of [-27, -19, -11, -3, 5, 13, 21, 29]) {
+        for (const x of [-2.2, 2.2]) {
+          box(world, x, 4.14, z, .12, .12, 2.3, rustMat);
+          if (Math.random() > .48) {
+            const rubble = new THREE.Mesh(new THREE.ConeGeometry(.43 + Math.random() * .4, .28, 5), mat(0x666259));
+            rubble.position.set(x + (Math.random() - .5), .12, z + (Math.random() - .5) * 3);
+            rubble.rotation.z = Math.random(); world.add(rubble);
+          }
+        }
+      }
+      for (const z of [-22, -7, 8, 23]) addFixtureLight(0, z, 0x8d9790, z === 8 ? .37 : .76);
+      for (const z of [-27, -13, 3, 19, 29]) addVines(17.15, z, 5.4, 5);
+      for (const z of [-18, 11]) {
+        const hole = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 5), new THREE.MeshBasicMaterial({ color: 0x11191c, side: THREE.DoubleSide }));
+        hole.rotation.x = Math.PI / 2; hole.position.set(0, 4.41, z); world.add(hole);
+        addVines(-3.4, z, 5.1, 7);
+      }
+      const sideGlow = new THREE.AmbientLight(0x8e9b9c, .32);
+      scene.add(sideGlow);
+      const moon = new THREE.DirectionalLight(0x9fb4c2, 1.0);
+      moon.position.set(-12, 20, 3); moon.castShadow = true;
+      moon.shadow.mapSize.set(1024, 1024);
+      moon.shadow.camera.left = -28; moon.shadow.camera.right = 28;
+      moon.shadow.camera.top = 34; moon.shadow.camera.bottom = -34;
+      scene.add(moon);
+      for (let i = 0; i < 7; i++) {
+        const upperWindow = box(world, i % 2 === 0 ? 17.3 : -17.3, 6.25, -25 + i * 8.2, .12, 1.2, 2.5, glassMat, { castShadow: false });
+        const vines = new THREE.Mesh(new THREE.ConeGeometry(.6, 2.8, 5), leafMat);
+        vines.position.set(upperWindow.position.x - .3, 7.2, upperWindow.position.z + 1); vines.rotation.z = Math.PI; world.add(vines);
+      }
+      addWardSign(10.2, 3.0, 24.6);
+    }
+
+    function addWardSign(x, y, z) {
+      makePoster(x, y, z, Math.PI / 2);
+      const spot = new THREE.SpotLight(0xc5ac78, 1.4, 7, .55, .8, 1.5);
+      spot.position.set(x, 3.9, z + 1.3); spot.target.position.set(x, 2.8, z);
+      world.add(spot, spot.target);
+      const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.1, .32), new THREE.MeshBasicMaterial({ color: 0x4d493c }));
+      sign.position.set(x - .05, 3.98, z + .15); sign.rotation.y = Math.PI / 2; world.add(sign);
+    }
+
+    buildHospital();
+    const baseColliders = colliders.map(collider => ({ minX: collider.minX, maxX: collider.maxX, minZ: collider.minZ, maxZ: collider.maxZ }));
+    const baseHideSpots = hideSpots.map(spot => ({ ...spot }));
+    wallMeshesByFloor.push([...wallMeshes]);
+    for (let level = 1; level < 3; level++) {
+      const upperFloor = world.clone(true);
+      upperFloor.position.y = level * floorHeight;
+      scene.add(upperFloor);
+      floorGroups.push(upperFloor);
+      const upperWalls = [];
+      upperFloor.traverse(object => {
+        if (object.isMesh && object.userData.wallCollider) upperWalls.push(object);
+      });
+      wallMeshesByFloor.push(upperWalls);
+      for (const spot of baseHideSpots) hideSpots.push({ ...spot, floor: level });
+      for (const collider of baseColliders) {
+        const northWall = collider.minZ < -31 && collider.maxZ < -31.5 && collider.maxX - collider.minX > 30;
+        if (level === 2 && northWall) continue;
+        colliders.push({ ...collider, floor: level });
+      }
+    }
+    for (const spot of hideSpots) if (spot.floor === undefined) spot.floor = 0;
+    const sealedNorthWall = floorGroups[2].children.filter(child =>
+      child.userData.wallCollider && child.position.z < -31.5 &&
+      child.geometry.parameters.width > 30
+    );
+    for (const wall of sealedNorthWall) {
+      floorGroups[2].remove(wall);
+      const wallIndex = wallMeshesByFloor[2].indexOf(wall);
+      if (wallIndex !== -1) wallMeshesByFloor[2].splice(wallIndex, 1);
+    }
+
+    const player = { x: -1.05, z: 18.2, floor: 0, yaw: Math.PI, hidden: false, caught: false, moving: false };
+    player.elevation = 0;
+    const mapPanel = document.querySelector("#map-panel");
+    const mapToggle = document.querySelector("#map-toggle");
+    const mapPlayerMarker = document.querySelector("#map-player-marker");
+    const mapFloorNames = ["GROUND", "SECOND", "THIRD"];
+    let mapFloor = player.floor;
+    const radarElement = document.querySelector("#ghost-radar");
+    const radarContacts = document.querySelector("#radar-contacts");
+    const radarStatus = document.querySelector("#radar-status");
+    let radarUpdateTimer = 0;
+    function updateGhostRadar(dt) {
+      radarUpdateTimer -= dt;
+      if (radarUpdateTimer > 0) return;
+      radarUpdateTimer = .12;
+      document.querySelector("#radar-floor").textContent = `FLOOR ${player.floor + 1}`;
+      const maxRange = 18;
+      const radius = 62;
+      const contacts = ghosts.filter(ghost => ghost.floor === player.floor).map(ghost => {
+        const dx = ghost.mesh.position.x - player.x;
+        const dz = ghost.mesh.position.z - player.z;
+        const distance = Math.hypot(dx, dz);
+        if (distance > maxRange) return null;
+        const forward = dx * Math.sin(player.yaw) - dz * Math.cos(player.yaw);
+        const right = dx * Math.cos(player.yaw) + dz * Math.sin(player.yaw);
+        const scale = Math.min(distance, maxRange) / maxRange;
+        return { x: 74 + right / (distance || 1) * scale * radius, y: 74 - forward / (distance || 1) * scale * radius, distance };
+      }).filter(contact => contact !== null);
+      radarContacts.replaceChildren(...contacts.map(contact => {
+        const marker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        marker.setAttribute("cx", String(contact.x));
+        marker.setAttribute("cy", String(contact.y));
+        marker.setAttribute("r", contact.distance < 6 ? "4" : "3");
+        marker.setAttribute("class", `radar-contact${contact.distance < 6 ? " close" : ""}`);
+        return marker;
+      }));
+      const nearest = contacts.reduce((distance, contact) => Math.min(distance, contact.distance), Infinity);
+      radarElement.classList.toggle("alert", nearest < 6);
+      radarStatus.textContent = contacts.length === 0
+        ? "SCANNING · NO CONTACTS"
+        : nearest < 6
+          ? `DANGER · ${Math.round(nearest)}M`
+          : `${contacts.length} CONTACT${contacts.length === 1 ? "" : "S"} · NEAREST ${Math.round(nearest)}M`;
+    }
+    function setMapFloor(floor) {
+      mapFloor = floor;
+      document.querySelector("#map-title").textContent = `FIELD MAP · ${mapFloorNames[mapFloor]} FLOOR`;
+      document.querySelectorAll("[data-map-floor]").forEach(button => {
+        const selected = Number(button.dataset.mapFloor) === mapFloor;
+        button.classList.toggle("selected", selected);
+        button.setAttribute("aria-pressed", String(selected));
+      });
+      updateMapPlayerMarker();
+    }
+    function updateMapPlayerMarker() {
+      const visible = mapFloor === player.floor;
+      mapPlayerMarker.style.display = visible ? "" : "none";
+      if (visible) {
+        const x = 11 + ((player.x + 18) / 36) * 278;
+        const y = 10 + ((player.z + 32) / 64) * 420;
+        mapPlayerMarker.setAttribute("transform", `translate(${x} ${y})`);
+      }
+    }
+    function setMapOpen(open) {
+      mapPanel.hidden = !open;
+      mapToggle.setAttribute("aria-expanded", String(open));
+      if (open) setMapFloor(player.floor);
+    }
+    mapToggle.addEventListener("click", () => setMapOpen(mapPanel.hidden));
+    document.querySelector("#map-close").addEventListener("click", () => setMapOpen(false));
+    document.querySelectorAll("[data-map-floor]").forEach(button => {
+      button.addEventListener("click", () => setMapFloor(Number(button.dataset.mapFloor)));
+    });
+    const held = new Set();
+    const survivorMaterials = {
+      coat: mat(0x393b35, 1),
+      coatLight: mat(0x555448, 1),
+      coatShadow: mat(0x272a26, 1),
+      trousers: mat(0x292c29, 1),
+      boot: mat(0x211e19, 1),
+      skin: mat(0x8e8475, 1),
+      hair: mat(0x24221e, 1),
+      cloth: mat(0x83785f, 1),
+      leather: mat(0x514536, 1),
+      brass: mat(0x8d7950, .55, { metalness: .48 }),
+      eye: mat(0x171817, .4),
+      eyeWhite: mat(0xb8ab91, .8)
+    };
+    function createSurvivorModel(coatColor = "field") {
+      const root = new THREE.Group();
+      const legs = [];
+      const arms = [];
+      const modelMaterials = {
+        ...survivorMaterials,
+        coat: survivorMaterials.coat.clone(),
+        coatLight: survivorMaterials.coatLight.clone(),
+        coatShadow: survivorMaterials.coatShadow.clone()
+      };
+      const coatTones = {
+        field: [0x393b35, 0x555448, 0x272a26],
+        charcoal: [0x303234, 0x4c5052, 0x202224],
+        brown: [0x493b2f, 0x65513d, 0x30261f],
+        blue: [0x343f43, 0x505e61, 0x242d30]
+      }[coatColor] || [0x393b35, 0x555448, 0x272a26];
+      modelMaterials.coat.color.setHex(coatTones[0]);
+      modelMaterials.coatLight.color.setHex(coatTones[1]);
+      modelMaterials.coatShadow.color.setHex(coatTones[2]);
+      function addPart(parent, geometry, material, x, y, z, scale) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(x, y, z);
+        if (scale) mesh.scale.set(scale[0], scale[1], scale[2]);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        parent.add(mesh);
+        return mesh;
+      }
+      const capsule = (radius, length, material, x, y, z, parent = root) =>
+        addPart(parent, new THREE.CapsuleGeometry(radius, length, 5, 10), material, x, y, z);
+
+      const coatHem = addPart(root, new THREE.CylinderGeometry(.34, .31, .48, 12), modelMaterials.coat, 0, .78, 0);
+      coatHem.rotation.z = Math.PI;
+      capsule(.295, .63, modelMaterials.coat, 0, 1.19, 0);
+      addPart(root, new THREE.BoxGeometry(.44, .32, .045), modelMaterials.coatLight, 0, 1.22, -.278);
+      addPart(root, new THREE.BoxGeometry(.085, .55, .055), modelMaterials.coatShadow, 0, 1.12, -.308);
+
+      for (const side of [-1, 1]) {
+        const lapel = addPart(root, new THREE.BoxGeometry(.13, .35, .045), modelMaterials.cloth,
+          side * .105, 1.4, -.3);
+        lapel.rotation.z = side * -.28;
+        const pocket = addPart(root, new THREE.BoxGeometry(.16, .15, .035), modelMaterials.coatShadow,
+          side * .17, 1.12, -.309);
+        const pocketFlap = addPart(root, new THREE.BoxGeometry(.17, .045, .045), modelMaterials.coatLight,
+          side * .17, 1.205, -.325);
+        for (let button = 0; button < 3; button++) {
+          addPart(root, new THREE.SphereGeometry(.024, 7, 5), modelMaterials.brass,
+            0, 1.02 + button * .14, -.345);
+        }
+
+        const leg = new THREE.Group();
+        leg.position.set(side * .145, .64, 0);
+        root.add(leg);
+        capsule(.12, .35, modelMaterials.trousers, 0, -.21, 0, leg);
+        const knee = new THREE.Group();
+        knee.position.y = -.42;
+        leg.add(knee);
+        capsule(.105, .33, modelMaterials.trousers, 0, -.18, 0, knee);
+        addPart(knee, new THREE.BoxGeometry(.21, .115, .35), modelMaterials.boot, 0, -.4, -.065);
+        addPart(knee, new THREE.BoxGeometry(.17, .11, .055), modelMaterials.leather, 0, -.42, -.244);
+        legs.push(leg);
+
+        const arm = new THREE.Group();
+        arm.position.set(side * .34, 1.43, 0);
+        root.add(arm);
+        capsule(.105, .34, modelMaterials.coat, 0, -.22, 0, arm);
+        const elbow = new THREE.Group();
+        elbow.position.y = -.43;
+        arm.add(elbow);
+        capsule(.085, .29, modelMaterials.coatLight, 0, -.17, 0, elbow);
+        addPart(elbow, new THREE.SphereGeometry(.075, 8, 6), modelMaterials.leather, 0, -.37, -.015);
+        arms.push(arm);
+
+        addPart(root, new THREE.BoxGeometry(.18, .055, .035), modelMaterials.leather,
+          side * .145, .51, -.02);
+      }
+
+      capsule(.095, .12, modelMaterials.skin, 0, 1.58, 0);
+      const head = addPart(root, new THREE.SphereGeometry(.19, 14, 12), modelMaterials.skin,
+        0, 1.76, -.015, [.88, 1.1, .88]);
+      for (const side of [-1, 1]) {
+        addPart(root, new THREE.SphereGeometry(.052, 8, 7), modelMaterials.skin,
+          side * .166, 1.75, -.005, [.72, 1.1, .72]);
+        addPart(root, new THREE.SphereGeometry(.028, 8, 6), modelMaterials.eyeWhite,
+          side * .071, 1.795, -.171, [1, .72, .48]);
+        addPart(root, new THREE.SphereGeometry(.014, 7, 5), modelMaterials.eye,
+          side * .071, 1.795, -.186);
+        const brow = addPart(root, new THREE.BoxGeometry(.075, .018, .024), modelMaterials.hair,
+          side * .072, 1.838, -.173);
+        brow.rotation.z = side * -.09;
+      }
+      addPart(root, new THREE.ConeGeometry(.042, .12, 7), modelMaterials.skin, 0, 1.742, -.205);
+      addPart(root, new THREE.BoxGeometry(.09, .025, .04), modelMaterials.coatShadow, 0, 1.65, -.172);
+      const cap = addPart(root, new THREE.SphereGeometry(.198, 12, 8, 0, Math.PI * 2, 0, Math.PI * .53),
+        modelMaterials.hair, 0, 1.89, .005);
+      addPart(root, new THREE.CylinderGeometry(.2, .2, .035, 12), modelMaterials.cloth, 0, 1.865, 0);
+      addPart(root, new THREE.BoxGeometry(.25, .035, .1), modelMaterials.coatShadow, 0, 1.85, -.15);
+
+      const pack = addPart(root, new THREE.BoxGeometry(.39, .48, .2), modelMaterials.leather, 0, 1.03, .29);
+      addPart(root, new THREE.BoxGeometry(.3, .18, .22), modelMaterials.cloth, 0, 1.34, .29);
+      for (const side of [-1, 1]) {
+        const strap = addPart(root, new THREE.BoxGeometry(.055, .64, .045), modelMaterials.leather,
+          side * .18, 1.16, -.18);
+        strap.rotation.z = side * -.08;
+        addPart(root, new THREE.BoxGeometry(.055, .15, .055), modelMaterials.brass,
+          side * .18, 1.13, -.212);
+      }
+      addPart(root, new THREE.CylinderGeometry(.105, .125, .29, 10), modelMaterials.cloth, .27, .98, .32)
+        .rotation.z = -.12;
+      addPart(root, new THREE.CylinderGeometry(.047, .047, .065, 8), modelMaterials.brass, .27, 1.16, .32);
+      return { root, legs, arms, materials: modelMaterials };
+    }
+    const survivorModel = createSurvivorModel(localStorage.getItem("quietward-coat") || "field");
+    const character = new THREE.Group();
+    scene.add(character);
+    character.add(survivorModel.root);
+    function createNameTag(name, horizontalOffset = 0, heightOffset = 2.35) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 384;
+      canvas.height = 72;
+      const context = canvas.getContext("2d");
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: texture, transparent: true, depthTest: false, depthWrite: false
+      }));
+      sprite.position.x = horizontalOffset;
+      sprite.position.y = heightOffset;
+      sprite.scale.set(1.45, .27, 1);
+      updateNameTag({ context, texture }, name);
+      return { sprite, context, texture };
+    }
+    function updateNameTag(tag, name) {
+      tag.context.clearRect(0, 0, 384, 72);
+      tag.context.font = "24px monospace";
+      tag.context.textAlign = "center";
+      tag.context.textBaseline = "middle";
+      const displayName = String(name || "Wanderer").slice(0, 18);
+      const width = Math.min(352, Math.max(116, tag.context.measureText(displayName).width + 30));
+      tag.context.fillStyle = "rgba(9, 10, 11, .82)";
+      tag.context.fillRect((384 - width) / 2, 8, width, 56);
+      tag.context.fillStyle = "#f0dfb6";
+      tag.context.fillText(displayName, 192, 36, 340);
+      tag.texture.needsUpdate = true;
+    }
+    const localNameTag = createNameTag(localStorage.getItem("quietward-username") || "Wanderer", -.38);
+    character.add(localNameTag.sprite);
+    const legs = survivorModel.legs;
+    const carriedPipe = new THREE.Mesh(new THREE.CylinderGeometry(.035, .055, .88, 7), rustMat);
+    carriedPipe.position.set(.43, .91, -.13);
+    carriedPipe.rotation.set(.35, 0, -.4);
+    carriedPipe.visible = false;
+    carriedPipe.castShadow = true;
+    character.add(carriedPipe);
+    const carriedFlarePistol = new THREE.Group();
+    const pistolGrip = new THREE.Mesh(new THREE.BoxGeometry(.09, .24, .11), woodMat);
+    pistolGrip.position.set(0, -.12, 0);
+    carriedFlarePistol.add(pistolGrip);
+    const pistolBarrel = new THREE.Mesh(new THREE.CylinderGeometry(.042, .047, .36, 8), metalMat);
+    pistolBarrel.rotation.x = Math.PI / 2;
+    pistolBarrel.position.set(0, .055, -.13);
+    carriedFlarePistol.add(pistolBarrel);
+    carriedFlarePistol.position.set(.4, 1.02, -.15);
+    carriedFlarePistol.rotation.x = -.12;
+    carriedFlarePistol.visible = false;
+    character.add(carriedFlarePistol);
+    const carriedRevolver = new THREE.Group();
+    const revolverGrip = new THREE.Mesh(new THREE.BoxGeometry(.1, .25, .12), woodMat);
+    revolverGrip.position.set(0, -.13, .015);
+    carriedRevolver.add(revolverGrip);
+    const revolverBarrel = new THREE.Mesh(new THREE.BoxGeometry(.09, .12, .39), metalMat);
+    revolverBarrel.position.set(0, .035, -.14);
+    carriedRevolver.add(revolverBarrel);
+    const revolverCylinder = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .14, 8), rustMat);
+    revolverCylinder.rotation.x = Math.PI / 2;
+    revolverCylinder.position.set(0, -.01, .015);
+    carriedRevolver.add(revolverCylinder);
+    carriedRevolver.position.set(.4, 1.02, -.15);
+    carriedRevolver.visible = false;
+    character.add(carriedRevolver);
+    let active = false;
+    let flashlightOn = true;
+    let cardsFound = 0;
+    const supplies = { water: 0, ration: 0 };
+    const needs = { thirst: 100, hunger: 100 };
+    let stamina = 100;
+    let autoRunEnabled = false;
+    const maximumSupplies = 6;
+    const weaponInventory = { pipe: false, flare: false, flareAmmo: 0, revolver: false, revolverAmmo: 0, equipped: null };
+    let weaponCooldown = 0;
+    let beastStunTimer = 0;
+    let needsHudTimer = 0;
+    let enemyState = "patrol";
+    let enemyTarget = null;
+    let targetTimer = 0;
+    let staircaseTraversal = null;
+    let toastTimer = 0;
+    let stepTimer = 0;
+    let audioContext = null;
+    let heartbeatTimer = 0;
+    let panicFlashTimer = 0;
+    const threatVignette = document.querySelector("#threat-vignette");
+    const playerLight = new THREE.SpotLight(0xe0dfc9, 52, 24, .34, .55, 1.4);
+    playerLight.position.set(0, 0, 0);
+    playerLight.target.position.set(0, 0, -1);
+    scene.add(playerLight, playerLight.target);
+    const flashlightGlow = new THREE.PointLight(0xe1dfcc, 1.0, 3, 2);
+    scene.add(flashlightGlow);
+
+    function grantKeycard(source) {
+      if (cardsFound >= 3) return;
+      cardsFound++;
+      document.querySelectorAll(".card-slot")[cardsFound - 1].classList.add("found");
+      const objective = document.querySelector("#objective-text");
+      objective.textContent = cardsFound === 3
+        ? "All cards recovered. Reach the gatehouse."
+        : `${cardsFound} of 3 recovered.`;
+      showToast(source, 2900);
+    }
+
+    const gate = new THREE.Group();
+    gate.position.set(0, 0, -30.9);
+    world.add(gate);
+    for (let x = -2.8; x <= 2.8; x += .45) box(gate, x, 2.0, 0, .13, 4.0, .18, rustMat);
+    for (const y of [.2, .75, 1.3, 1.85, 2.4, 2.95, 3.5]) box(gate, 0, y, 0, 5.7, .12, .2, rustMat);
+    box(gate, -3.25, 2.2, 0, .4, 4.4, .5, plasterDark);
+    box(gate, 3.25, 2.2, 0, .4, 4.4, .5, plasterDark);
+    const booth = box(world, 0, 3.3, -33.2, 5.1, 2.7, 3.7, plasterDark);
+    const boothWindow = box(world, 0, 3.7, -31.29, 2.7, .9, .07, glassMat);
+    const gateLabel = makeLabel("GATEHOUSE · EXIT", 1.8, .34);
+    gateLabel.position.set(0, 4.02, -31.25); world.add(gateLabel);
+    interactables.push({ mesh: boothWindow, type: "exit", floor: 0, label: "UNLOCK THE GATEHOUSE" });
+
+    function makeLabel(text, width, height) {
+      const c = document.createElement("canvas"); c.width = 512; c.height = 128;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#82775e"; ctx.fillRect(0, 0, 512, 128);
+      ctx.fillStyle = "#211f19"; ctx.font = "25px Georgia"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(text, 256, 66);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+      return new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide }));
+    }
+
+    const entity = new THREE.Group();
+    entity.position.set(0, 0, -8);
+    scene.add(entity);
+    const entityCore = new THREE.Mesh(new THREE.CapsuleGeometry(.38, 1.22, 5, 7), new THREE.MeshBasicMaterial({ color: 0x080a0d }));
+    entityCore.position.y = 1.05; entity.add(entityCore);
+    const entityHead = new THREE.Mesh(new THREE.SphereGeometry(.31, 8, 7), new THREE.MeshBasicMaterial({ color: 0x090b0e }));
+    entityHead.position.set(0, 1.92, -.03); entityHead.scale.set(.82, 1.25, .72); entity.add(entityHead);
+    for (const side of [-1, 1]) {
+      const arm = new THREE.Mesh(new THREE.CapsuleGeometry(.105, .8, 4, 6), shadowMat);
+      arm.position.set(side * .48, 1.08, .02); arm.rotation.z = side * -.18; entity.add(arm);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.036, 5, 4), new THREE.MeshBasicMaterial({ color: 0xcbbfa5 }));
+      eye.position.set(side * .12, 1.96, -.295); entity.add(eye);
+    }
+    const aura = new THREE.PointLight(0x607078, 1.35, 6, 2);
+    aura.position.y = 1.4; entity.add(aura);
+    const entityShadow = new THREE.Mesh(new THREE.CircleGeometry(.78, 16), new THREE.MeshBasicMaterial({ color: 0x030506, transparent: true, opacity: .6 }));
+    entityShadow.rotation.x = -Math.PI / 2; entityShadow.position.y = .025; entity.add(entityShadow);
+    const patrol = [
+      { x: 0, z: 18 }, { x: 0, z: 4 }, { x: 0, z: -13 }, { x: -8, z: -8 },
+      { x: -12, z: 0 }, { x: -8, z: 16 }, { x: 0, z: 24 }, { x: 9, z: 8 },
+      { x: 12, z: 0 }, { x: 8, z: -16 }, { x: 12, z: -24 }, { x: 0, z: -22 }
+    ];
+    entity.floor = 0;
+    let entityFloorTimer = 25;
+    const boss = {
+      mesh: new THREE.Group(), active: false, defeated: false, health: 0, floor: 0, floorTimer: 8,
+      x: 0, z: 0, bobPhase: 0
+    };
+    const bossMaterial = new THREE.MeshBasicMaterial({
+      color: 0x101217, transparent: true, opacity: .94, side: THREE.DoubleSide
+    });
+    const bossBody = new THREE.Mesh(new THREE.CapsuleGeometry(.68, 1.3, 6, 9), bossMaterial);
+    bossBody.position.y = 1.45;
+    bossBody.scale.set(1.2, 1.25, .9);
+    boss.mesh.add(bossBody);
+    const bossHead = new THREE.Mesh(new THREE.SphereGeometry(.49, 9, 7), bossMaterial);
+    bossHead.position.set(0, 2.83, -.05);
+    bossHead.scale.set(.85, 1.2, .8);
+    boss.mesh.add(bossHead);
+    for (const side of [-1, 1]) {
+      const arm = new THREE.Mesh(new THREE.CapsuleGeometry(.16, 1.15, 5, 7), bossMaterial);
+      arm.position.set(side * .87, 1.5, .04);
+      arm.rotation.z = side * -.22;
+      boss.mesh.add(arm);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.07, 6, 5), new THREE.MeshBasicMaterial({ color: 0xd6b78d }));
+      eye.position.set(side * .18, 2.92, -.42);
+      boss.mesh.add(eye);
+    }
+    const bossGlow = new THREE.PointLight(0x9b675d, 2.2, 9, 2);
+    bossGlow.position.y = 2.3;
+    boss.mesh.add(bossGlow);
+    boss.mesh.visible = false;
+    scene.add(boss.mesh);
+    function awakenBoss() {
+      if (boss.active || boss.defeated) return;
+      boss.active = true;
+      boss.health = 5;
+      boss.floor = player.floor;
+      boss.x = 0;
+      boss.z = Math.max(-27, Math.min(24, player.z - 10));
+      if (Math.hypot(player.x - boss.x, player.z - boss.z) < 6) {
+        boss.x = player.x < 0 ? 11 : -11;
+      }
+      boss.mesh.position.set(boss.x, boss.floor * floorHeight, boss.z);
+      boss.mesh.visible = true;
+      boss.mesh.scale.setScalar(1);
+      showToast("A towering shape fills the corridor. The revolver is your only chance.", 3800);
+      status.textContent = "THE WARDEN IS AWAKE";
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const center = new THREE.Vector2(0, 0);
+    const hint = document.querySelector("#hint");
+    const status = document.querySelector("#status");
+    const danger = document.querySelector("#danger");
+    const toast = document.querySelector("#toast");
+    let hovered = null;
+    let nearbyHide = null;
+    let lastInteractionClick = null;
+    let peerId = null;
+    let peerName = "Wanderer";
+    let networkSocket = null;
+    let pvpEnabled = false;
+    let duelHealth = 100;
+    let lastPvpAttack = 0;
+    let lobbyAction = "join";
+    let startAfterJoin = false;
+    let allowReconnect = true;
+    let playerHearts = 3;
+    let reviveHearts = 5;
+    let playerDowned = false;
+    let downedTimer = 0;
+    let pendingRescueTarget = null;
+    let reconnectTimer = 0;
+    let reconnectDelay = 1000;
+    let poseTimer = 0;
+    let lastPoseSentAt = 0;
+    let lastRemoteTickAt = 0;
+    let micStream = null;
+    let pushToTalk = false;
+    const remotePlayers = new Map();
+    const voiceConnections = new Map();
+    const serverAddressInput = document.querySelector("#server-address");
+    const roomCodeInput = document.querySelector("#room-code");
+    const serverInfo = document.querySelector("#server-info");
+    const serverPanel = document.querySelector("#server-panel");
+    const queryParams = new URLSearchParams(location.search);
+    const defaultAddress = location.protocol === "http:" || location.protocol === "https:" ? location.origin : "";
+    const serverModeInput = document.querySelector("#server-mode");
+    const startServerModeInput = document.querySelector("#start-server-mode");
+    const startServerAddressInput = document.querySelector("#start-server-address");
+    const startRoomCodeInput = document.querySelector("#start-room-code");
+    const profilePanel = document.querySelector("#profile-panel");
+    const profileUsername = document.querySelector("#profile-username");
+    const profilePassword = document.querySelector("#profile-password");
+    const profileAction = document.querySelector("#profile-action");
+    const profileCoat = document.querySelector("#profile-coat");
+    const profileInfo = document.querySelector("#profile-info");
+    const profileSubmit = document.querySelector("#profile-submit");
+    let serverLanEnabled = false;
+    let serverLanAddresses = [];
+    serverAddressInput.value = queryParams.get("server") || localStorage.getItem("quietward-server") || defaultAddress;
+    roomCodeInput.value = queryParams.get("room") || localStorage.getItem("quietward-room") || "ward";
+    const savedMode = queryParams.get("mode") || localStorage.getItem("quietward-mode") || "local";
+    serverModeInput.value = ["local", "global"].includes(savedMode) ? savedMode : "local";
+    startServerModeInput.value = serverModeInput.value;
+    startServerAddressInput.value = serverAddressInput.value;
+    startRoomCodeInput.value = roomCodeInput.value;
+    profileUsername.value = localStorage.getItem("quietward-username") || "";
+    profileCoat.value = localStorage.getItem("quietward-coat") || "field";
+    profileAction.addEventListener("change", () => {
+      const createAccount = profileAction.value === "signup";
+      profileSubmit.textContent = createAccount ? "CREATE ACCOUNT" : "SIGN IN";
+      profilePassword.autocomplete = createAccount ? "new-password" : "current-password";
+    });
+    function setServerMode(mode) {
+      const selectedMode = mode === "global" ? "global" : "local";
+      serverModeInput.value = selectedMode;
+      startServerModeInput.value = selectedMode;
+      const modeNote = selectedMode === "global"
+        ? "Use a public HTTPS/WSS server address reachable over the internet. Internet hosting needs a public host or HTTPS reverse proxy."
+        : "Use the host's LAN address. Both players must be on the same network.";
+      document.querySelector("#server-mode-note").textContent = modeNote;
+      document.querySelector("#start-server-note").textContent = modeNote;
+      localStorage.setItem("quietward-mode", selectedMode);
+    }
+    setServerMode(serverModeInput.value);
+    serverModeInput.addEventListener("change", () => setServerMode(serverModeInput.value));
+    startServerModeInput.addEventListener("change", () => setServerMode(startServerModeInput.value));
+    const brightnessSlider = document.querySelector("#brightness-slider");
+    const savedBrightness = Number(localStorage.getItem("quietward-brightness"));
+    if (Number.isFinite(savedBrightness) && savedBrightness >= 1.1 && savedBrightness <= 4) {
+      brightnessSlider.value = String(savedBrightness);
+    } else {
+      brightnessSlider.value = "2";
+    }
+    function applyBrightness() {
+      const exposure = Number(brightnessSlider.value);
+      renderer.toneMappingExposure = exposure;
+      document.querySelector("#brightness-value").textContent = `${Math.round(exposure * 100)}%`;
+      localStorage.setItem("quietward-brightness", String(exposure));
+    }
+    function setCameraZoom(distance) {
+      cameraDistance = Math.max(2.4, Math.min(8.8, distance));
+      document.querySelector("#zoom-level").textContent = `${Math.round((5.2 / cameraDistance) * 100)}%`;
+    }
+    document.querySelector("#zoom-in").addEventListener("click", () => setCameraZoom(cameraDistance - .55));
+    document.querySelector("#zoom-out").addEventListener("click", () => setCameraZoom(cameraDistance + .55));
+    renderer.domElement.addEventListener("wheel", event => {
+      if (!active) return;
+      event.preventDefault();
+      setCameraZoom(cameraDistance + Math.sign(event.deltaY) * .45);
+    }, { passive: false });
+    applyBrightness();
+    setCameraZoom(cameraDistance);
+    const chatLog = document.querySelector("#chat-log");
+    const chatPanel = document.querySelector("#chat-panel");
+    const chatInput = document.querySelector("#chat-input");
+    const connectionState = document.querySelector("#connection-state");
+    const voiceButton = document.querySelector("#voice-button");
+
+    function addChatLine(message, system = false) {
+      const line = document.createElement("div");
+      line.className = system ? "chat-entry system" : "chat-entry";
+      if (system) {
+        line.textContent = message;
+      } else {
+        const speaker = document.createElement("strong");
+        speaker.textContent = `${message.name}: `;
+        const words = document.createTextNode(message.text);
+        line.append(speaker, words);
+      }
+      chatLog.appendChild(line);
+      while (chatLog.children.length > 50) chatLog.firstElementChild.remove();
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function sendNetworkMessage(message) {
+      if (!networkSocket || networkSocket.readyState !== WebSocket.OPEN) return false;
+      networkSocket.send(JSON.stringify(message));
+      return true;
+    }
+
+    function updatePeerCount() {
+      const count = remotePlayers.size + (peerId ? 1 : 0);
+      connectionState.textContent = peerId ? `ONLINE · ${count} ${count === 1 ? "PLAYER" : "PLAYERS"}` : "OFFLINE";
+      document.querySelector("#chat-room-label").textContent =
+        peerId ? `${roomCodeInput.value.toUpperCase()} · ${count} ONLINE` : "WARD RADIO · OFFLINE";
+    }
+
+    function updateHearts() {
+      document.querySelector("#player-hearts").textContent =
+        `${"♥ ".repeat(Math.max(0, playerHearts))}${"♡ ".repeat(Math.max(0, 3 - playerHearts))}`.trim();
+      document.querySelector("#player-hearts").setAttribute("aria-label", `${playerHearts} of 3 hearts`);
+      document.querySelector("#revive-hearts").textContent = String(reviveHearts);
+    }
+
+    function updateDuelHud() {
+      const pvpHealth = document.querySelector("#pvp-health");
+      pvpHealth.hidden = !pvpEnabled;
+      pvpHealth.firstChild.textContent = `DUEL HEALTH · ${Math.round(duelHealth)}%`;
+      document.querySelector("#pvp-health-fill").style.width = `${duelHealth}%`;
+      const toggle = document.querySelector("#pvp-toggle");
+      toggle.textContent = pvpEnabled ? "PVP ON" : "PVP OFF";
+      toggle.classList.toggle("enabled", pvpEnabled);
+      toggle.setAttribute("aria-pressed", String(pvpEnabled));
+      toggle.disabled = !peerId || playerDowned;
+    }
+
+    function becomeDowned(attackerName = "A rival") {
+      if (playerDowned) return;
+      playerHearts = 0;
+      playerDowned = true;
+      active = false;
+      downedTimer = 30;
+      held.clear();
+      updateHearts();
+      updateDuelHud();
+      document.querySelector("#pvp-down-screen").hidden = false;
+      addChatLine(`${attackerName} downed you. A teammate can spend two rescue hearts to revive you.`, true);
+    }
+
+    function finishPvpRespawn(hearts = 3) {
+      playerDowned = false;
+      playerHearts = Math.max(1, Math.min(3, hearts));
+      duelHealth = playerHearts * (100 / 3);
+      downedTimer = 0;
+      player.caught = false;
+      player.hidden = false;
+      staircaseTraversal = null;
+      player.x = -1.05;
+      player.z = 18.2;
+      player.floor = 0;
+      player.elevation = 0;
+      document.querySelector("#pvp-down-screen").hidden = true;
+      document.querySelector("#pvp-defeat").hidden = true;
+      active = true;
+      updateHearts();
+      updateDuelHud();
+      sendNetworkMessage({ type: "pvp-respawn", hearts: playerHearts });
+      showToast("You are back on your feet.", 1800);
+    }
+
+    function requestRescue(peer) {
+      if (!pvpEnabled || playerDowned || reviveHearts < 2 || !peer.pvpEnabled || !peer.downed) return;
+      if (!peer.id || pendingRescueTarget) return;
+      pendingRescueTarget = peer.id;
+      document.querySelector("#pvp-save-copy").textContent =
+        `${peer.name} is down. Give two of your ${reviveHearts} rescue hearts to revive them with one health heart?`;
+      document.querySelector("#pvp-save-accept").disabled = reviveHearts < 2;
+      document.querySelector("#pvp-save-prompt").hidden = false;
+    }
+
+    function createRemotePlayer(peer) {
+      if (!peer?.id || peer.id === peerId) return null;
+      let remote = remotePlayers.get(peer.id);
+      if (!remote) {
+        const avatar = new THREE.Group();
+        const model = createSurvivorModel(peer.coatColor || "field");
+        avatar.add(model.root);
+
+        const horizontalOffset = remotePlayers.size % 2 === 0 ? .38 : .62;
+        const nameTag = createNameTag(peer.name || "Wanderer", horizontalOffset, 2.75);
+        avatar.add(nameTag.sprite);
+        floorGroups[0].add(avatar);
+        remote = {
+          id: peer.id, name: String(peer.name || "Wanderer").slice(0, 18), avatar, model,
+          nameTag, coatColor: peer.coatColor || "field",
+          floor: 0, x: 0, z: 0, yaw: 0, moving: false, targetX: 0, targetZ: 0
+        };
+        remotePlayers.set(peer.id, remote);
+        addChatLine(`${remote.name} entered the ward.`, true);
+      }
+      updateRemoteName(remote, peer.name || remote.name);
+      updatePeerCount();
+      return remote;
+    }
+
+    function updateRemoteName(remote, name) {
+      remote.name = String(name || "Wanderer").slice(0, 18);
+      updateNameTag(remote.nameTag, remote.name);
+    }
+
+    function setModelCoatColor(model, color) {
+      const tones = {
+        field: [0x393b35, 0x555448, 0x272a26],
+        charcoal: [0x303234, 0x4c5052, 0x202224],
+        brown: [0x493b2f, 0x65513d, 0x30261f],
+        blue: [0x343f43, 0x505e61, 0x242d30]
+      }[color] || [0x393b35, 0x555448, 0x272a26];
+      model.materials.coat.color.setHex(tones[0]);
+      model.materials.coatLight.color.setHex(tones[1]);
+      model.materials.coatShadow.color.setHex(tones[2]);
+    }
+
+    function removeRemotePlayer(id) {
+      const remote = remotePlayers.get(id);
+      if (remote) {
+        remote.avatar.parent?.remove(remote.avatar);
+        remote.avatar.traverse(object => {
+          if (object.isSprite && object.material.map) object.material.map.dispose();
+        });
+        remotePlayers.delete(id);
+      }
+      const voice = voiceConnections.get(id);
+      if (voice) {
+        voice.connection.close();
+        voice.audio.remove();
+        voiceConnections.delete(id);
+      }
+      updatePeerCount();
+    }
+
+    function moveRemotePlayer(update) {
+      const remote = createRemotePlayer(update);
+      if (!remote) return;
+      if (update.name) updateRemoteName(remote, update.name);
+      if (update.coatColor && update.coatColor !== remote.coatColor) {
+        remote.coatColor = update.coatColor;
+        setModelCoatColor(remote.model, remote.coatColor);
+      }
+      remote.pvpEnabled = update.pvpEnabled === true;
+      remote.downed = update.downed === true;
+      remote.hearts = Number.isFinite(Number(update.hearts)) ? Number(update.hearts) : remote.hearts;
+      remote.reviveHearts = Number.isFinite(Number(update.reviveHearts)) ? Number(update.reviveHearts) : remote.reviveHearts;
+      const level = Math.max(0, Math.min(2, Number(update.floor) || 0));
+      if (level !== remote.floor) {
+        remote.avatar.parent?.remove(remote.avatar);
+        floorGroups[level].add(remote.avatar);
+        remote.floor = level;
+      }
+      remote.targetX = Number(update.x) || 0;
+      remote.targetZ = Number(update.z) || 0;
+      remote.targetYaw = Number(update.yaw) || 0;
+      remote.floor = level;
+      remote.moving = update.moving === true;
+    }
+
+    // Live position updates only: the server tags them "from" (not "id"), and they must not reset PvP/health state.
+    function applyRemotePose(message) {
+      const id = String(message.id ?? message.from ?? "");
+      if (!id || id === peerId) return;
+      const remote = remotePlayers.get(id) || createRemotePlayer({ id, name: message.name });
+      if (!remote) return;
+      const level = Math.max(0, Math.min(2, Number(message.floor) || 0));
+      if (level !== remote.floor) {
+        remote.avatar.parent?.remove(remote.avatar);
+        floorGroups[level].add(remote.avatar);
+        remote.floor = level;
+      }
+      remote.targetX = Number(message.x) || 0;
+      remote.targetZ = Number(message.z) || 0;
+      remote.targetYaw = Number(message.yaw) || 0;
+      if (!remote.seenPose) { // first position: appear in place instead of sliding in from the map origin
+        remote.seenPose = true;
+        remote.x = remote.targetX; remote.z = remote.targetZ; remote.yaw = remote.targetYaw;
+      }
+      remote.moving = message.moving === true;
+    }
+
+    async function startVoiceOffer(id, connectionState) {
+      if (!peerId || !micStream || peerId.localeCompare(id) >= 0 ||
+          connectionState.connection.signalingState !== "stable") return;
+      try {
+        const offer = await connectionState.connection.createOffer();
+        await connectionState.connection.setLocalDescription(offer);
+        sendNetworkMessage({
+          type: "signal", target: id,
+          signal: { description: connectionState.connection.localDescription }
+        });
+      } catch (error) {
+        console.warn("Could not start voice chat with a ward companion.", error);
+      }
+    }
+
+    function createVoiceConnection(id, offerInitiator) {
+      if (voiceConnections.has(id)) return voiceConnections.get(id);
+      let connection;
+      try {
+        connection = new RTCPeerConnection({ iceServers: [] });
+      } catch (error) {
+        addChatLine("Voice chat is not supported by this browser.", true);
+        return null;
+      }
+      const audio = document.createElement("audio");
+      audio.autoplay = true; audio.playsInline = true;
+      document.body.appendChild(audio);
+      const state = { connection, audio, candidates: [] };
+      voiceConnections.set(id, state);
+      if (micStream) {
+        for (const track of micStream.getAudioTracks()) connection.addTrack(track, micStream);
+      }
+      connection.onicecandidate = event => {
+        if (event.candidate) sendNetworkMessage({ type: "signal", target: id, signal: { candidate: event.candidate } });
+      };
+      connection.ontrack = event => {
+        state.audio.srcObject = event.streams[0];
+        state.audio.play().catch(() => {
+          addChatLine("Your browser may need a click before it plays incoming voice chat.", true);
+        });
+      };
+      connection.onnegotiationneeded = () => {
+        if (peerId && peerId.localeCompare(id) < 0) {
+          window.setTimeout(() => startVoiceOffer(id, state), 0);
+        }
+      };
+      connection.onconnectionstatechange = () => {
+        if (connection.connectionState === "failed") {
+          addChatLine("Voice connection failed. Check that both players are on the same local network.", true);
+        }
+      };
+      if (offerInitiator && micStream) window.setTimeout(() => startVoiceOffer(id, state), 0);
+      return state;
+    }
+
+    async function receiveVoiceSignal(id, signal) {
+      if (!signal || typeof signal !== "object") return;
+      const state = createVoiceConnection(id, false);
+      if (!state) return;
+      try {
+        if (signal.kind === "renegotiate") {
+          await startVoiceOffer(id, state);
+          return;
+        }
+        if (signal.description) {
+          await state.connection.setRemoteDescription(signal.description);
+          for (const candidate of state.candidates.splice(0)) {
+            await state.connection.addIceCandidate(candidate);
+          }
+          if (signal.description.type === "offer") {
+            const answer = await state.connection.createAnswer();
+            await state.connection.setLocalDescription(answer);
+            sendNetworkMessage({
+              type: "signal", target: id,
+              signal: { description: state.connection.localDescription }
+            });
+          }
+        } else if (signal.candidate) {
+          if (state.connection.remoteDescription) await state.connection.addIceCandidate(signal.candidate);
+          else state.candidates.push(signal.candidate);
+        }
+      } catch (error) {
+        console.warn("Could not process a voice-chat signal.", error);
+      }
+    }
+
+    async function toggleVoice() {
+      if (micStream) {
+        setPushToTalk(false);
+        sendNetworkMessage({ type: "voice-state", enabled: false });
+        for (const [id, state] of voiceConnections) {
+          for (const sender of state.connection.getSenders()) {
+            if (sender.track?.kind === "audio") state.connection.removeTrack(sender);
+          }
+          sendNetworkMessage({ type: "signal", target: id, signal: { kind: "renegotiate" } });
+        }
+        for (const track of micStream.getTracks()) track.stop();
+        micStream = null;
+        voiceButton.textContent = "ENABLE VOICE";
+        voiceButton.classList.remove("active", "talking");
+        addChatLine("Your microphone is off.", true);
+        return;
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        addChatLine("Voice chat needs a secure browser connection (localhost or HTTPS) and microphone permission.", true);
+        return;
+      }
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false
+        });
+        for (const track of micStream.getAudioTracks()) track.enabled = false;
+        for (const [id] of remotePlayers) {
+          const state = createVoiceConnection(id, peerId?.localeCompare(id) < 0);
+          if (state) {
+            for (const track of micStream.getAudioTracks()) state.connection.addTrack(track, micStream);
+            if (peerId?.localeCompare(id) > 0) {
+              sendNetworkMessage({ type: "signal", target: id, signal: { kind: "renegotiate" } });
+            }
+          }
+        }
+        voiceButton.textContent = "VOICE ON · HOLD V";
+        voiceButton.classList.add("active");
+        sendNetworkMessage({ type: "voice-state", enabled: true });
+        addChatLine("Voice is ready. Hold V to talk.", true);
+      } catch (error) {
+        micStream = null;
+        const detail = error?.name === "NotAllowedError" ? "Microphone permission was denied." :
+          error?.name === "NotFoundError" ? "No microphone was found." : "Could not start the microphone.";
+        addChatLine(`${detail} Voice chat remains off.`, true);
+      }
+    }
+
+    function setPushToTalk(enabled) {
+      if (!micStream || pushToTalk === enabled) return;
+      pushToTalk = enabled;
+      for (const track of micStream.getAudioTracks()) track.enabled = enabled;
+      voiceButton.classList.toggle("talking", enabled);
+    }
+
+    function handleNetworkMessage(message) {
+      if (message.type === "welcome") {
+        peerId = String(message.id);
+        peerName = String(message.name || "Wanderer").slice(0, 18);
+        if (!sessionStorage.getItem("quietward-token")) {
+          const guestName = localStorage.getItem("quietward-username");
+          if (guestName && guestName !== peerName) {
+            peerName = guestName;
+            sendNetworkMessage({ type: "rename", name: guestName });
+          }
+        }
+        updateNameTag(localNameTag, peerName);
+        sendNetworkMessage({
+          type: "profile",
+          coatColor: localStorage.getItem("quietward-coat") || "field"
+        });
+        connectionState.textContent = "ONLINE · 1 PLAYER";
+        addChatLine(`You entered the ward as ${peerName}.`, true);
+        sendNetworkMessage({ type: "pvp-state", enabled: pvpEnabled });
+        for (const peer of Array.isArray(message.peers) ? message.peers : []) {
+          moveRemotePlayer(peer);
+          createVoiceConnection(peer.id, peerId.localeCompare(peer.id) < 0);
+        }
+        updatePeerCount();
+        updateDuelHud();
+        updateHearts();
+        if (startAfterJoin) {
+          startAfterJoin = false;
+          document.querySelector("#start-server-panel").hidden = true;
+          beginGame();
+          showToast(lobbyAction === "create"
+            ? `Room ${roomCodeInput.value} is ready. Share its code with friends.`
+            : `Joined room ${roomCodeInput.value}.`, 3200);
+        }
+      } else if (message.type === "peer-joined") {
+        moveRemotePlayer(message.peer);
+        if (message.peer?.id && micStream) {
+          createVoiceConnection(message.peer.id, peerId?.localeCompare(message.peer.id) < 0);
+        }
+        updatePeerCount();
+      } else if (message.type === "peer-left") {
+        removeRemotePlayer(message.id);
+      } else if (message.type === "pose") {
+        applyRemotePose(message);
+      } else if (message.type === "pvp-state") {
+        const remote = remotePlayers.get(message.from);
+        if (remote) {
+          remote.pvpEnabled = message.enabled === true;
+          remote.downed = message.downed === true;
+          remote.hearts = Number(message.hearts) || 0;
+          remote.reviveHearts = Number(message.reviveHearts) || 0;
+        }
+        if (message.from === peerId) {
+          pvpEnabled = message.enabled === true;
+          playerDowned = message.downed === true;
+          playerHearts = Number(message.hearts) || 3;
+          reviveHearts = Number.isFinite(Number(message.reviveHearts)) ? Number(message.reviveHearts) : reviveHearts;
+          duelHealth = playerHearts * (100 / 3);
+          updateDuelHud();
+          updateHearts();
+        }
+      } else if (message.type === "pvp-health" && message.target === peerId) {
+        playerHearts = Math.max(0, Math.min(3, Number(message.hearts) || 0));
+        duelHealth = playerHearts * (100 / 3);
+        updateHearts();
+        updateDuelHud();
+        if (playerHearts === 0) becomeDowned(String(message.attacker || "A rival"));
+      } else if (message.type === "pvp-health") {
+        const target = remotePlayers.get(message.target);
+        if (target) {
+          target.hearts = Math.max(0, Math.min(3, Number(message.hearts) || 0));
+          target.downed = target.hearts === 0;
+        }
+      } else if (message.type === "pvp-down" && message.from !== peerId) {
+        const downed = remotePlayers.get(message.from);
+        const downedPeer = downed || {
+          id: message.from, name: String(message.name || "Your teammate"),
+          pvpEnabled: true, downed: true, hearts: 0, reviveHearts: 5
+        };
+        downedPeer.downed = true;
+        downedPeer.hearts = 0;
+        requestRescue(downedPeer);
+      } else if (message.type === "pvp-rescued") {
+        const rescuer = remotePlayers.get(message.from);
+        if (rescuer) rescuer.reviveHearts = Number(message.reviveHearts) || 0;
+        if (message.from === peerId) {
+          reviveHearts = Math.max(0, Number(message.reviveHearts) || 0);
+          updateHearts();
+          document.querySelector("#pvp-save-prompt").hidden = true;
+          pendingRescueTarget = null;
+        }
+        if (message.target === peerId) {
+          playerDowned = false;
+          playerHearts = Math.max(1, Math.min(3, Number(message.hearts) || 1));
+          duelHealth = playerHearts * (100 / 3);
+          downedTimer = 0;
+          document.querySelector("#pvp-down-screen").hidden = true;
+          active = true;
+          updateHearts();
+          updateDuelHud();
+          addChatLine(`${String(message.name || "A teammate")} saved you with two rescue hearts.`, true);
+        }
+      } else if (message.type === "pvp-rescue-declined" && message.target === peerId) {
+        addChatLine(`${String(message.name || "A teammate")} declined the rescue.`, true);
+      } else if (message.type === "pvp-respawn" && message.from !== peerId) {
+        const remote = remotePlayers.get(message.from);
+        if (remote) {
+          remote.downed = false;
+          remote.hearts = Number(message.hearts) || 3;
+        }
+      } else if (message.type === "peer-renamed") {
+        const remote = remotePlayers.get(message.id);
+        if (remote) updateRemoteName(remote, message.name);
+      } else if (message.type === "peer-profile") {
+        const remote = remotePlayers.get(message.id);
+        if (remote && message.coatColor) {
+          remote.coatColor = message.coatColor;
+          setModelCoatColor(remote.model, remote.coatColor);
+        }
+      } else if (message.type === "chat" && message.from !== peerId) {
+        addChatLine({ name: String(message.name || "Wanderer").slice(0, 18), text: String(message.text || "").slice(0, 240) });
+      } else if (message.type === "signal" && message.from !== peerId) {
+        receiveVoiceSignal(message.from, message.signal);
+      } else if (message.type === "voice-state" && message.from !== peerId) {
+        const remote = remotePlayers.get(message.from);
+        if (remote) addChatLine(`${remote.name} ${message.enabled ? "enabled" : "muted"} their microphone.`, true);
+      }
+    }
+
+    function connectMultiplayer({ action = "join", mode = serverModeInput.value, address, room, reconnect = false } = {}) {
+      window.clearTimeout(reconnectTimer);
+      allowReconnect = reconnect;
+      lobbyAction = action;
+      const addressValue = (address ?? serverAddressInput.value).trim();
+      if (!addressValue) {
+        connectionState.textContent = "SERVER REQUIRED";
+        serverInfo.textContent = "Enter the host's HTTP address, for example http://192.168.1.20:8000.";
+        document.querySelector("#start-server-info").textContent = serverInfo.textContent;
+        return;
+      }
+      let serverUrl;
+      try {
+        serverUrl = new URL(addressValue);
+      } catch {
+        connectionState.textContent = "INVALID ADDRESS";
+        const message = "Enter a valid http:// or https:// server address.";
+        serverInfo.textContent = message;
+        document.querySelector("#start-server-info").textContent = message;
+        return;
+      }
+      if (!["http:", "https:"].includes(serverUrl.protocol)) {
+        connectionState.textContent = "INVALID ADDRESS";
+        const message = "Server address must start with http:// or https://.";
+        serverInfo.textContent = message;
+        document.querySelector("#start-server-info").textContent = message;
+        return;
+      }
+      if (mode === "global" && serverUrl.protocol !== "https:") {
+        const message = "Global mode requires a public HTTPS address (and a WSS-enabled host or reverse proxy).";
+        connectionState.textContent = "HTTPS REQUIRED";
+        serverInfo.textContent = message;
+        document.querySelector("#start-server-info").textContent = message;
+        return;
+      }
+      const roomValue = (room ?? roomCodeInput.value).toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 24);
+      if (!roomValue) {
+        const message = "Enter a room code to join, or create a room to generate one.";
+        connectionState.textContent = "ROOM CODE REQUIRED";
+        serverInfo.textContent = message;
+        document.querySelector("#start-server-info").textContent = message;
+        return;
+      }
+      roomCodeInput.value = roomValue;
+      serverAddressInput.value = serverUrl.origin;
+      serverModeInput.value = mode;
+      startServerModeInput.value = mode;
+      localStorage.setItem("quietward-mode", mode);
+      const previousSocket = networkSocket;
+      networkSocket = null;
+      if (previousSocket && previousSocket.readyState < WebSocket.CLOSING) previousSocket.close();
+      for (const id of [...remotePlayers.keys()]) removeRemotePlayer(id);
+      peerId = null;
+      localStorage.setItem("quietward-server", serverUrl.origin);
+      localStorage.setItem("quietward-room", roomValue);
+      const scheme = serverUrl.protocol === "https:" ? "wss:" : "ws:";
+      const socketUrl = new URL(`${scheme}//${serverUrl.host}/multiplayer`);
+      socketUrl.searchParams.set("room", roomValue);
+      const accountToken = sessionStorage.getItem("quietward-token");
+      if (accountToken) socketUrl.searchParams.set("token", accountToken);
+      const socket = new WebSocket(socketUrl);
+      networkSocket = socket;
+      connectionState.textContent = "CONNECTING…";
+      const feedback = `Connecting to ${serverUrl.origin} · room ${roomValue}.`;
+      serverInfo.textContent = feedback;
+      document.querySelector("#start-server-info").textContent = feedback;
+      fetch(`${serverUrl.origin}/health`)
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(health => {
+          serverLanEnabled = health.lanEnabled === true;
+          serverLanAddresses = Array.isArray(health.addresses) ? health.addresses : [];
+          const loopbackHost = serverUrl.hostname === "localhost" ||
+            serverUrl.hostname === "127.0.0.1" || serverUrl.hostname === "::1";
+          if (serverLanEnabled && loopbackHost && serverLanAddresses.length > 0) {
+            const lanUrl = new URL(serverLanAddresses[0]);
+            serverAddressInput.value = lanUrl.origin;
+            startServerAddressInput.value = lanUrl.origin;
+            localStorage.setItem("quietward-server", lanUrl.origin);
+          }
+          const addresses = serverLanAddresses.join(", ");
+          serverInfo.textContent = `Server online · ${health.players} player(s) · port ${health.port}.` +
+            (health.lanEnabled ? ` LAN hosting enabled${addresses ? ` · ${addresses}` : ""}.` : " Local-only hosting.");
+          if (!health.lanEnabled) {
+            serverInfo.textContent += " Restart run-game.ps1 and accept the administrator prompt to let other devices join.";
+          }
+        })
+        .catch(error => {
+          serverLanEnabled = false;
+          serverLanAddresses = [];
+          serverInfo.textContent = `Could not read server status (${error.message}). Check the address, port, and firewall.`;
+        });
+      socket.onopen = () => {
+        reconnectDelay = 1000;
+        connectionState.textContent = "JOINING…";
+      };
+      socket.onmessage = event => {
+        try {
+          handleNetworkMessage(JSON.parse(event.data));
+        } catch (error) {
+          console.warn("Received an invalid ward multiplayer message.", error);
+        }
+      };
+      socket.onerror = () => {
+        connectionState.textContent = "NETWORK ERROR";
+        const message = `Could not connect to ${serverUrl.origin}. Check that the host is running run-game.ps1, the room code is correct, and the address is reachable. Other devices cannot join through 127.0.0.1 or localhost.`;
+        serverInfo.textContent = message;
+        document.querySelector("#start-server-info").textContent = message;
+      };
+      socket.onclose = () => {
+        if (networkSocket !== socket) return;
+        peerId = null;
+        for (const id of [...remotePlayers.keys()]) removeRemotePlayer(id);
+        updatePeerCount();
+        if (!navigator.onLine || !allowReconnect) {
+          connectionState.textContent = "OFFLINE";
+          if (startAfterJoin) {
+            startAfterJoin = false;
+            document.querySelector("#start-server-info").textContent =
+              "Connection failed. Confirm the server address and room code, then try again.";
+          }
+        } else {
+          connectionState.textContent = "RECONNECTING…";
+          if (socket.readyState !== WebSocket.CLOSED) addChatLine("The ward radio lost its signal.", true);
+          window.clearTimeout(reconnectTimer);
+          reconnectTimer = window.setTimeout(connectMultiplayer, reconnectDelay);
+          reconnectDelay = Math.min(reconnectDelay * 1.7, 15000);
+        }
+      };
+    }
+
+    function openLobby(action) {
+      lobbyAction = action;
+      startAfterJoin = false;
+      const isCreate = action === "create";
+      document.querySelector("#start-server-title").textContent = isCreate ? "CREATE SERVER ROOM" : "JOIN SERVER ROOM";
+      document.querySelector("#start-server-submit").textContent = isCreate ? "CREATE ROOM" : "JOIN ROOM";
+      document.querySelector("#start-server-info").textContent = "The server program must be running on the host computer.";
+      startServerAddressInput.value = serverAddressInput.value || defaultAddress;
+      startServerModeInput.value = serverModeInput.value;
+      startRoomCodeInput.value = isCreate
+        ? `ward-${Math.random().toString(36).slice(2, 8)}`
+        : roomCodeInput.value;
+      document.querySelector("#start-room-code").readOnly = isCreate;
+      document.querySelector("#start-server-panel").hidden = false;
+      document.querySelector("#start-server-address").focus();
+    }
+
+    function submitLobby(action, mode, address, room) {
+      const normalizedAddress = address.trim();
+      const normalizedRoom = room.trim().toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 24);
+      document.querySelector("#start-server-info").textContent = "Starting connection…";
+      serverAddressInput.value = normalizedAddress;
+      roomCodeInput.value = normalizedRoom;
+      startAfterJoin = true;
+      allowReconnect = false;
+      connectMultiplayer({ action, mode, address: normalizedAddress, room: normalizedRoom });
+    }
+
+    document.querySelector("#create-server-open").addEventListener("click", () => openLobby("create"));
+    document.querySelector("#join-server-open").addEventListener("click", () => openLobby("join"));
+    document.querySelector("#profile-open").addEventListener("click", () => {
+      profilePanel.hidden = false;
+      profileUsername.focus();
+    });
+    document.querySelector("#profile-close").addEventListener("click", () => {
+      profilePanel.hidden = true;
+    });
+    document.querySelector("#profile-guest").addEventListener("click", () => {
+      const username = profileUsername.value.trim();
+      if (!/^[A-Za-z0-9_-]{3,18}$/.test(username)) {
+        profileInfo.textContent = "Guest usernames must be 3-18 letters, numbers, underscores, or hyphens.";
+        return;
+      }
+      localStorage.setItem("quietward-username", username);
+      sessionStorage.removeItem("quietward-token");
+      profileNameChanged(username);
+      profileInfo.textContent = `Playing as ${username}. This guest name is saved in this browser only.`;
+    });
+    profileSubmit.addEventListener("click", async () => {
+      const username = profileUsername.value.trim();
+      const password = profilePassword.value;
+      if (!/^[A-Za-z0-9_-]{3,18}$/.test(username)) {
+        profileInfo.textContent = "Username must be 3-18 letters, numbers, underscores, or hyphens.";
+        return;
+      }
+      if (password.length < 8 || password.length > 128) {
+        profileInfo.textContent = "Password must be 8-128 characters.";
+        return;
+      }
+      let authUrl;
+      try {
+        const serverUrl = new URL(serverAddressInput.value.trim());
+        if (!["http:", "https:"].includes(serverUrl.protocol)) throw new Error("Use an HTTP or HTTPS game server address.");
+        authUrl = new URL(`/auth/${profileAction.value}`, serverUrl.origin);
+      } catch (error) {
+        profileInfo.textContent = `Set a valid game server address first. ${error.message}`;
+        return;
+      }
+      profileSubmit.disabled = true;
+      profileInfo.textContent = "Contacting game server…";
+      try {
+        const response = await fetch(authUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const responseText = await response.text();
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch {
+          throw new Error(`Server returned an invalid response (HTTP ${response.status}).`);
+        }
+        if (!response.ok) throw new Error(result.error || `Account request failed (HTTP ${response.status}).`);
+        if (typeof result.token !== "string" || typeof result.username !== "string") {
+          throw new Error("Server response did not include a valid account session.");
+        }
+        sessionStorage.setItem("quietward-token", result.token);
+        localStorage.setItem("quietward-username", result.username);
+        profileUsername.value = result.username;
+        profileNameChanged(result.username);
+        profileInfo.textContent = `Signed in as ${result.username} on this game server.`;
+      } catch (error) {
+        profileInfo.textContent = `${error.message} Account sign-in requires an internet-reachable server with HTTPS for public use.`;
+      } finally {
+        profileSubmit.disabled = false;
+      }
+    });
+    profilePassword.addEventListener("keydown", event => {
+      if (event.key === "Enter") profileSubmit.click();
+    });
+    profileUsername.addEventListener("keydown", event => {
+      if (event.key === "Enter") profilePassword.focus();
+    });
+    profileCoat.addEventListener("change", () => {
+      localStorage.setItem("quietward-coat", profileCoat.value);
+      setModelCoatColor(survivorModel, profileCoat.value);
+      sendNetworkMessage({ type: "profile", coatColor: profileCoat.value });
+      profileInfo.textContent = "Character appearance saved in this browser.";
+    });
+    function profileNameChanged(username) {
+      peerName = username;
+      updateNameTag(localNameTag, username);
+      if (peerId) sendNetworkMessage({ type: "rename", name: username });
+    }
+    addEventListener("dblclick", () => {
+      autoRunEnabled = !autoRunEnabled;
+      showToast(autoRunEnabled ? "Sprint enabled while holding ↑." : "Sprint disabled.", 1600);
+      document.querySelector("#stamina-row").title =
+        `Sprint ${autoRunEnabled ? "ON" : "OFF"} · double-click anywhere to toggle`;
+    });
+    document.querySelector("#start-server-close").addEventListener("click", () => {
+      startAfterJoin = false;
+      document.querySelector("#start-server-panel").hidden = true;
+    });
+    document.querySelector("#start-server-submit").addEventListener("click", () => {
+      const action = lobbyAction;
+      const mode = startServerModeInput.value;
+      setServerMode(mode);
+      submitLobby(action, mode, startServerAddressInput.value, startRoomCodeInput.value);
+    });
+    document.querySelector("#server-create").addEventListener("click", () => {
+      const room = `ward-${Math.random().toString(36).slice(2, 8)}`;
+      roomCodeInput.value = room;
+      serverInfo.textContent = `Creating room ${room}…`;
+      connectMultiplayer({ action: "create", mode: serverModeInput.value, address: serverAddressInput.value, room });
+    });
+    document.querySelector("#pvp-toggle").addEventListener("click", () => {
+      if (!peerId) {
+        showToast("Connect to a multiplayer room before enabling PvP.");
+        return;
+      }
+      pvpEnabled = !pvpEnabled;
+      if (!pvpEnabled) {
+        playerDowned = false;
+        playerHearts = 3;
+        duelHealth = 100;
+        document.querySelector("#pvp-down-screen").hidden = true;
+        document.querySelector("#pvp-save-prompt").hidden = true;
+        pendingRescueTarget = null;
+        active = true;
+      }
+      sendNetworkMessage({ type: "pvp-state", enabled: pvpEnabled });
+      updateDuelHud();
+      updateHearts();
+      showToast(pvpEnabled ? "PvP enabled. Face a rival and right-click with the revolver." : "PvP disabled.");
+    });
+    document.querySelector("#pvp-save-accept").addEventListener("click", () => {
+      if (!pendingRescueTarget || reviveHearts < 2) return;
+      sendNetworkMessage({ type: "pvp-rescue", target: pendingRescueTarget, accept: true });
+      document.querySelector("#pvp-save-accept").disabled = true;
+      document.querySelector("#pvp-save-copy").textContent = "Sending your offer…";
+    });
+    document.querySelector("#pvp-save-decline").addEventListener("click", () => {
+      if (pendingRescueTarget) sendNetworkMessage({ type: "pvp-rescue", target: pendingRescueTarget, accept: false });
+      pendingRescueTarget = null;
+      document.querySelector("#pvp-save-prompt").hidden = true;
+    });
+    document.querySelector("#pvp-give-up").addEventListener("click", () => finishPvpRespawn(3));
+    document.querySelector("#pvp-respawn").addEventListener("click", () => finishPvpRespawn(3));
+    updateDuelHud();
+    updateHearts();
+
+    document.querySelector("#server-toggle").addEventListener("click", () => {
+      serverPanel.hidden = !serverPanel.hidden;
+      document.querySelector("#server-toggle").setAttribute("aria-expanded", String(!serverPanel.hidden));
+    });
+    document.querySelector("#server-close").addEventListener("click", () => {
+      serverPanel.hidden = true;
+      document.querySelector("#server-toggle").setAttribute("aria-expanded", "false");
+    });
+    document.querySelector("#server-connect").addEventListener("click", connectMultiplayer);
+    document.querySelector("#server-share").addEventListener("click", async () => {
+      const serverAddress = serverAddressInput.value.trim() || defaultAddress;
+      let invite;
+      try {
+        const serverUrl = new URL(serverAddress);
+        const isLoopback = value => value === "localhost" || value === "127.0.0.1" || value === "::1";
+        if (isLoopback(location.hostname) && !serverLanEnabled) {
+          serverInfo.textContent = "This server is local-only. Restart run-game.ps1 and accept the administrator prompt before sharing an invite.";
+          return;
+        }
+        invite = new URL(location.href);
+        if (isLoopback(invite.hostname) && !isLoopback(serverUrl.hostname)) {
+          invite.protocol = serverUrl.protocol;
+          invite.host = serverUrl.host;
+        }
+        invite.searchParams.set("server", serverAddress);
+      } catch (error) {
+        serverInfo.textContent = `Cannot create invite (${error.message}). Check the server address.`;
+        return;
+      }
+      invite.searchParams.set("room", roomCodeInput.value.trim() || "ward");
+      invite.searchParams.set("mode", serverModeInput.value);
+      try {
+        await navigator.clipboard.writeText(invite.href);
+        serverInfo.textContent = "Invite link copied. Share it with players on the same reachable server.";
+      } catch (error) {
+        serverInfo.textContent = `Could not copy invite (${error.message}). Copy this link: ${invite.href}`;
+      }
+    });
+    brightnessSlider.addEventListener("input", applyBrightness);
+
+    document.querySelector("#chat-toggle").addEventListener("click", () => {
+      chatPanel.hidden = !chatPanel.hidden;
+      document.querySelector("#chat-toggle").setAttribute("aria-expanded", String(!chatPanel.hidden));
+      if (!chatPanel.hidden) chatInput.focus();
+    });
+    document.querySelector("#chat-close").addEventListener("click", () => {
+      chatPanel.hidden = true;
+      document.querySelector("#chat-toggle").setAttribute("aria-expanded", "false");
+    });
+    document.querySelector("#chat-form").addEventListener("submit", event => {
+      event.preventDefault();
+      const text = chatInput.value.trim();
+      if (!text) return;
+      if (sendNetworkMessage({ type: "chat", text: text.slice(0, 240) })) {
+        chatInput.value = "";
+      } else {
+        addChatLine("Ward radio is disconnected; your message was not sent.", true);
+      }
+    });
+    voiceButton.addEventListener("click", toggleVoice);
+    addEventListener("keydown", event => {
+      if (event.code === "KeyV" && !event.repeat && !chatPanel.contains(event.target)) setPushToTalk(true);
+    });
+    addEventListener("keyup", event => {
+      if (event.code === "KeyV") setPushToTalk(false);
+    });
+    addEventListener("blur", () => setPushToTalk(false));
+    connectMultiplayer({ reconnect: true });
+
+    function showToast(message, duration = 2400) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), duration);
+    }
+
+    function beginGame() {
+      if (active || player.caught) return;
+      active = true;
+      document.querySelector("#intro").classList.add("hidden");
+      document.querySelector("#hud").hidden = false;
+      if (!audioContext) {
+        audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = "sine"; oscillator.frequency.value = 42; gain.gain.value = .018;
+        oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start();
+      }
+      showToast("Ward 6. The gatehouse is at the far end of the hall.", 3600);
+      renderer.domElement.focus();
+    }
+
+    function showStoryMemory() {
+      active = false;
+      document.querySelector("#story-memory").hidden = false;
+    }
+
+    document.querySelector("#start").addEventListener("click", beginGame);
+    document.querySelector("#memory-continue").addEventListener("click", () => {
+      document.querySelector("#story-memory").hidden = true;
+      active = true;
+      awakenBoss();
+    });
+    document.querySelector("#restart").addEventListener("click", () => location.reload());
+    document.querySelector("#escape").addEventListener("click", () => location.reload());
+
+    function getAimTarget() {
+      const nearbyItems = interactables.filter(item =>
+        ["card", "supply", "weapon-pickup", "drawer", "under-bed"].includes(item.type) &&
+        item.floor === player.floor &&
+        !item.searched &&
+        (!item.group || item.group.visible)
+      );
+      let closest = null;
+      let closestDistance = 2.35;
+      for (const item of nearbyItems) {
+        const position = item.group ? item.group.position : item.mesh.parent.position;
+        const distance = Math.hypot(player.x - position.x, player.z - position.z);
+        if (distance < closestDistance) {
+          closest = item;
+          closestDistance = distance;
+        }
+      }
+      if (closest) return closest;
+
+      raycaster.setFromCamera(center, camera);
+      raycaster.far = 9;
+      const meshes = interactables
+        .filter(item => item.floor === player.floor && !item.searched && (!item.group || item.group.visible))
+        .map(item => item.mesh);
+      const hits = raycaster.intersectObjects(meshes, false);
+      if (!hits.length || hits[0].distance > 9) return null;
+      return interactables.find(item => item.mesh === hits[0].object) ?? null;
+    }
+
+    function nearbyStaircase() {
+      if (player.hidden) return null;
+      const stairways = [];
+      if (player.floor === 0) {
+        stairways.push({ x: -1.05, z: 18.45, label: "WALK UP · FLOOR 2" });
+      } else if (player.floor === 1) {
+        stairways.push({ x: 1.05, z: 25.25, label: "WALK UP · FLOOR 3" });
+        stairways.push({ x: -1.05, z: 25.25, label: "WALK DOWN · FLOOR 1" });
+      } else {
+        stairways.push({ x: 1.05, z: 18.45, label: "WALK DOWN · FLOOR 2" });
+      }
+      return stairways.find(stair =>
+        Math.hypot(player.x - stair.x, player.z - stair.z) < 3.4
+      ) ?? null;
+    }
+
+    function updateStairTraversal(deltaZ) {
+      const stairStart = 18.45;
+      const stairEnd = 25.25;
+      if (!staircaseTraversal && Math.abs(deltaZ) > 0.0001) {
+        const onStair = player.z >= stairStart && player.z <= stairEnd;
+        if (onStair && player.floor === 0 && deltaZ > 0 && Math.abs(player.x + 1.05) < 1.3) {
+          staircaseTraversal = { direction: 1, fromFloor: 0, x: -1.05, startZ: stairStart, endZ: stairEnd };
+        } else if (onStair && player.floor === 1 && deltaZ < 0 && Math.abs(player.x - 1.05) < 1.3) {
+          staircaseTraversal = { direction: 1, fromFloor: 1, x: 1.05, startZ: stairEnd, endZ: stairStart };
+        } else if (onStair && player.floor === 1 && deltaZ < 0 && Math.abs(player.x + 1.05) < 1.3) {
+          staircaseTraversal = { direction: -1, fromFloor: 1, x: -1.05, startZ: stairEnd, endZ: stairStart };
+        } else if (onStair && player.floor === 2 && deltaZ > 0 && Math.abs(player.x - 1.05) < 1.3) {
+          staircaseTraversal = { direction: -1, fromFloor: 2, x: 1.05, startZ: stairStart, endZ: stairEnd };
+        }
+      }
+
+      if (!staircaseTraversal) {
+        player.elevation = player.floor * floorHeight;
+        document.querySelector("#floor-indicator").textContent =
+          `${["GROUND", "SECOND", "THIRD"][player.floor]} FLOOR · ${player.floor + 1} / 3`;
+        return;
+      }
+      if (Math.abs(player.x - staircaseTraversal.x) > 1.3) {
+        staircaseTraversal = null;
+        player.elevation = player.floor * floorHeight;
+        document.querySelector("#floor-indicator").textContent =
+          `${["GROUND", "SECOND", "THIRD"][player.floor]} FLOOR · ${player.floor + 1} / 3`;
+        return;
+      }
+
+      const traversal = staircaseTraversal;
+      const progress = (player.z - traversal.startZ) / (traversal.endZ - traversal.startZ);
+
+      if (progress < 0 || progress > 1.08) {
+        staircaseTraversal = null;
+        player.elevation = player.floor * floorHeight;
+        document.querySelector("#floor-indicator").textContent =
+          `${["GROUND", "SECOND", "THIRD"][player.floor]} FLOOR · ${player.floor + 1} / 3`;
+        return;
+      }
+      if (progress >= 1) {
+        player.floor = traversal.fromFloor + traversal.direction;
+        player.elevation = player.floor * floorHeight;
+        staircaseTraversal = null;
+        document.querySelector("#floor-indicator").textContent =
+          `${["GROUND", "SECOND", "THIRD"][player.floor]} FLOOR · ${player.floor + 1} / 3`;
+        showToast(`You reach the ${["ground", "second", "third"][player.floor]} floor.`, 1700);
+        return;
+      }
+
+      player.elevation = (traversal.fromFloor + traversal.direction * progress) * floorHeight;
+      player.floor = traversal.direction > 0
+        ? traversal.fromFloor + (progress >= .5 ? 1 : 0)
+        : traversal.fromFloor - (progress >= .5 ? 1 : 0);
+      document.querySelector("#floor-indicator").textContent =
+        `${["GROUND", "SECOND", "THIRD"][player.floor]} FLOOR · ${player.floor + 1} / 3 · CLIMBING`;
+    }
+
+    function nearestHideSpot() {
+      if (player.hidden) return null;
+      let best = null, bestDistance = 2.5;
+      for (const spot of hideSpots) {
+        if (spot.floor !== player.floor) continue;
+        const distance = Math.hypot(player.x - spot.x, player.z - spot.z);
+        if (distance < bestDistance) { best = spot; bestDistance = distance; }
+      }
+      return best;
+    }
+
+    function searchFurniture(target) {
+      target.searched = true;
+      target.mesh.material = target.mesh.material.clone();
+      target.mesh.material.color?.set(0x26231f);
+      if (target.type === "drawer") {
+        target.mesh.position.z -= .2;
+      }
+      if (target.loot === "keycard") {
+        grantKeycard("A keycard, hidden beneath dust and old linen.");
+      } else if (target.loot === "revolver") {
+        weaponInventory.revolver = true;
+        weaponInventory.revolverAmmo += 8;
+        weaponInventory.equipped = "revolver";
+        updateNeedDisplay();
+        showStoryMemory();
+      } else if (target.loot === "weapon") {
+        if (!weaponInventory.pipe) {
+          weaponInventory.pipe = true;
+          if (!weaponInventory.equipped) weaponInventory.equipped = "pipe";
+          updateNeedDisplay();
+          showToast("A length of iron pipe. It may buy you a moment.");
+        } else {
+          weaponInventory.flareAmmo += 1;
+          updateNeedDisplay();
+          showToast("A flare shell tucked beneath the bed. Keep it dry.");
+        }
+      } else {
+        supplies.water = Math.min(maximumSupplies, supplies.water + 1);
+        supplies.ration = Math.min(maximumSupplies, supplies.ration + 1);
+        updateNeedDisplay();
+        showToast("You found a water flask and a field ration.");
+      }
+    }
+
+    function performInteraction(clickCount = 1) {
+      if (!active || player.caught) return;
+      if (player.hidden) {
+        player.hidden = false;
+        showToast("You slip back into the corridor.");
+        status.textContent = "ALONE IN THE WARD";
+        return;
+      }
+      const target = getAimTarget();
+      if (target?.type === "drawer") {
+        if (clickCount < 2) {
+          showToast("The drawer is stuck. Double-click it to pull it open.", 1800);
+        } else {
+          searchFurniture(target);
+        }
+        return;
+      }
+      if (target?.type === "under-bed") {
+        if (clickCount < 3) {
+          showToast("Something may be beneath the bed. Triple-click to search.", 1800);
+        } else {
+          searchFurniture(target);
+        }
+        return;
+      }
+      if (target?.type === "card") {
+        const g = keyMeshes[target.index];
+        if (!g.visible) return;
+        g.visible = false;
+        cardsFound++;
+        document.querySelectorAll(".card-slot")[target.index].classList.add("found");
+        const notices = ["An old brass-edged card. It still works.", "Another keycard. The gate is one step closer.", "The last keycard. The gatehouse should open."];
+        showToast(notices[cardsFound - 1], 2900);
+        document.querySelector("#objective-text").textContent = cardsFound === 3 ? "All cards recovered. Reach the gatehouse." : `${cardsFound} of 3 recovered.`;
+        return;
+      }
+      if (target?.type === "supply") {
+        if (supplies[target.resource] >= maximumSupplies) {
+          showToast("Your backpack is full. Leave this supply for someone else.");
+          return;
+        }
+        target.group.visible = false;
+        supplies[target.resource]++;
+        updateNeedDisplay();
+        showToast(target.resource === "water" ? "Water bottle packed. Your field pack has more water." : "Emergency ration packed. Your field pack has more food.");
+        return;
+      }
+      if (target?.type === "weapon-pickup") {
+        if (!target.group.visible) return;
+        target.group.visible = false;
+        if (target.weapon === "pipe") {
+          weaponInventory.pipe = true;
+          if (!weaponInventory.equipped) weaponInventory.equipped = "pipe";
+          showToast("A length of iron pipe. It may buy you a moment.");
+        } else if (target.weapon === "flare") {
+          weaponInventory.flare = true;
+          if (!weaponInventory.equipped) weaponInventory.equipped = "flare";
+          showToast("A signal flare pistol. The shots will only stun it.");
+        } else {
+          weaponInventory.flareAmmo += 1;
+          if (!weaponInventory.flare) {
+            showToast("Flare shells packed. Find a flare pistol in the ward store.");
+          } else {
+            showToast("Flare shells packed. Use them sparingly.");
+          }
+        }
+        updateNeedDisplay();
+        return;
+      }
+      if (target?.type === "exit") {
+        if (cardsFound < 3) {
+          showToast(`The gate is locked. ${3 - cardsFound} keycard${3 - cardsFound === 1 ? "" : "s"} still missing.`);
+          return;
+        }
+        active = false;
+        document.querySelector("#victory").hidden = false;
+        return;
+      }
+      if (nearbyHide) {
+        player.hidden = true;
+        status.textContent = "HIDDEN · HOLD YOUR BREATH";
+        showToast("Don't move. Don't breathe.", 2200);
+        return;
+      }
+      flashlightOn = !flashlightOn;
+      document.querySelector("#flash-state").textContent = flashlightOn ? "ON · FLICKERING" : "OFF";
+      showToast(flashlightOn ? "The beam shivers back to life." : "The corridor disappears.", 1500);
+    }
+
+    renderer.domElement.addEventListener("pointerdown", event => {
+      if (!active) return;
+      if (event.button === 0) {
+        const target = getAimTarget();
+        const now = performance.now();
+        if (target && ["drawer", "under-bed"].includes(target.type)) {
+          const sameTarget = lastInteractionClick?.target === target;
+          const withinWindow = sameTarget && now - lastInteractionClick.time < 620;
+          const count = withinWindow ? lastInteractionClick.count + 1 : 1;
+          lastInteractionClick = { target, count, time: now };
+          performInteraction(count);
+        } else {
+          lastInteractionClick = null;
+          performInteraction();
+        }
+      }
+      if (event.button === 2) useWeapon();
+    });
+    addEventListener("keydown", event => {
+      const forbidden = ["w", "a", "s", "d", " "];
+      if (forbidden.includes(event.key.toLowerCase())) {
+        event.preventDefault();
+        return;
+      }
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key) && document.querySelector("#intro").classList.contains("hidden")) event.preventDefault();
+      if (event.key === "Escape" && active && player.hidden) performInteraction();
+      held.add(event.key);
+    });
+    addEventListener("keyup", event => held.delete(event.key));
+    addEventListener("blur", () => held.clear());
+    addEventListener("contextmenu", event => event.preventDefault());
+
+    // Touch joysticks: feed the same `held` key set that the arrow keys use, so movement,
+    // turning, sprint, stairs, collisions and multiplayer sync are untouched.
+    // Left stick = walk forward/back (full push = sprint). Right stick = turn left/right.
+    function setHeld(want) { for (const key in want) { if (want[key]) held.add(key); else held.delete(key); } }
+    function setMove(dx, dy) {
+      const dead = .28;
+      setHeld({
+        ArrowUp: dy < -dead, ArrowDown: dy > dead,
+        Shift: Math.hypot(dx, dy) > .92 && dy < -dead // uses the existing stamina system
+      });
+    }
+    function setTurn(dx) {
+      const dead = .2;
+      setHeld({ ArrowLeft: dx < -dead, ArrowRight: dx > dead });
+    }
+    function bindStick(stick, knob, onChange) {
+      let pointerId = null;
+      function update(event) {
+        const rect = stick.getBoundingClientRect();
+        const radius = rect.width / 2;
+        let dx = (event.clientX - rect.left - radius) / radius;
+        let dy = (event.clientY - rect.top - radius) / radius;
+        const length = Math.hypot(dx, dy);
+        if (length > 1) { dx /= length; dy /= length; }
+        knob.style.transform = `translate(${dx * radius * .6}px, ${dy * radius * .6}px)`;
+        onChange(dx, dy);
+      }
+      function release(event) {
+        if (event.pointerId !== pointerId) return;
+        pointerId = null;
+        knob.style.transform = "";
+        onChange(0, 0);
+      }
+      stick.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        pointerId = event.pointerId;
+        stick.setPointerCapture(event.pointerId);
+        update(event);
+      });
+      stick.addEventListener("pointermove", event => { if (event.pointerId === pointerId) update(event); });
+      stick.addEventListener("pointerup", release);
+      stick.addEventListener("pointercancel", release);
+    }
+    bindStick(document.querySelector("#joystick"), document.querySelector("#joystick-knob"), setMove);
+    bindStick(document.querySelector("#joystick-turn"), document.querySelector("#joystick-turn-knob"), dx => setTurn(dx));
+    const fullscreenButton = document.querySelector("#touch-fs");
+    fullscreenButton.addEventListener("click", async () => {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+      } catch (error) {
+        showToast("Fullscreen isn't available here. Try opening the page in Chrome.", 3200);
+      }
+    });
+    document.addEventListener("fullscreenchange", () => {
+      fullscreenButton.textContent = document.fullscreenElement ? "EXIT FULLSCREEN" : "FULLSCREEN";
+    });
+    document.querySelector("#touch-use").addEventListener("pointerdown", event => { event.preventDefault(); useWeapon(); });
+
+    // Gamepad support (additive). Feeds the same `held` key set the arrow keys use, and the same
+    // interact / use-weapon paths the mouse and touch controls use, so movement, stairs, collisions,
+    // stamina and multiplayer sync are untouched. Keyboard, mouse and touch keep working as before.
+    //   Left stick: up/down = walk, left/right = turn.  Right stick: turn.  D-pad = arrow keys.
+    //   LB / LT / L3 = sprint (existing stamina).  A = interact (press 2x for drawers, 3x for beds,
+    //   same as clicking).  RT / RB / X / B = use weapon.  Y = sprint lock (same as double-click).
+    const gamepadHeld = {};
+    const gamepadPrev = [];
+    let gamepadFrame = 0;
+    function gamepadSet(key, want) {
+      if (want) { held.add(key); gamepadHeld[key] = true; }
+      else if (gamepadHeld[key]) { held.delete(key); gamepadHeld[key] = false; }
+    }
+    function gamepadReleaseAll() {
+      for (const key of Object.keys(gamepadHeld)) gamepadSet(key, false);
+      gamepadPrev.length = 0;
+    }
+    function gamepadPoll() {
+      gamepadFrame = 0;
+      let pad = null;
+      try {
+        const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        for (const candidate of pads) { if (candidate && candidate.connected) { pad = candidate; break; } }
+      } catch (error) { pad = null; }
+      if (!pad) { gamepadReleaseAll(); return; }
+      const down = index => !!(pad.buttons[index] && (pad.buttons[index].pressed || pad.buttons[index].value > .5));
+      const pressed = index => down(index) && !gamepadPrev[index];
+      const ax = pad.axes[0] || 0, ay = pad.axes[1] || 0, rx = pad.axes[2] || 0;
+      gamepadSet("ArrowUp", ay < -.28 || down(12));
+      gamepadSet("ArrowDown", ay > .28 || down(13));
+      gamepadSet("ArrowLeft", ax < -.28 || rx < -.22 || down(14));
+      gamepadSet("ArrowRight", ax > .28 || rx > .22 || down(15));
+      gamepadSet("Shift", down(4) || down(6) || down(10));
+      if (pressed(0)) {
+        const introScreen = document.querySelector("#intro");
+        if (introScreen && !introScreen.classList.contains("hidden")) {
+          // On the title screen A presses the focused button, or "Enter the ward" if nothing is focused.
+          const focused = document.activeElement;
+          const nothing = !focused || focused === document.body;
+          const target = nothing ? document.querySelector("#start")
+            : (focused.tagName === "BUTTON" && introScreen.contains(focused) ? focused : null);
+          if (target) target.click();
+        } else {
+          try { renderer.domElement.dispatchEvent(new PointerEvent("pointerdown", { button: 0, bubbles: true })); } catch (error) {}
+        }
+      }
+      if (pressed(7) || pressed(5) || pressed(2) || pressed(1)) useWeapon();
+      if (pressed(3)) dispatchEvent(new MouseEvent("dblclick"));
+      for (let index = 0; index < 17; index++) gamepadPrev[index] = down(index);
+      gamepadFrame = requestAnimationFrame(gamepadPoll);
+    }
+    function gamepadStart() { if (!gamepadFrame) gamepadFrame = requestAnimationFrame(gamepadPoll); }
+    addEventListener("gamepadconnected", () => {
+      showToast("Gamepad connected. Left stick walks and turns, right stick turns, A interacts, RT uses your weapon.", 4200);
+      gamepadStart();
+    });
+    addEventListener("gamepaddisconnected", () => { gamepadReleaseAll(); });
+    try {
+      if (navigator.getGamepads && Array.from(navigator.getGamepads()).some(Boolean)) gamepadStart();
+    } catch (error) {}
+
+    function isBlocked(x, z, floor = player.floor) {
+      const minZ = floor === 2 ? -46.2 : -30.7;
+      if (x < -16.3 || x > 16.3 || z < minZ || z > 30.7) return true;
+      for (const c of colliders) {
+        if ((c.floor ?? 0) !== floor) continue;
+        if (x > c.minX - .24 && x < c.maxX + .24 && z > c.minZ - .24 && z < c.maxZ + .24) return true;
+      }
+      return false;
+    }
+
+    function hasLineOfSight(from, to) {
+      const fromFloor = from.floor ?? 0;
+      if (fromFloor !== to.floor) return false;
+      const floorY = fromFloor * floorHeight;
+      const origin = new THREE.Vector3(from.x, floorY + 1.4, from.z);
+      const target = new THREE.Vector3(to.x, floorY + 1.1, to.z);
+      const direction = target.clone().sub(origin);
+      const distance = direction.length();
+      raycaster.set(origin, direction.normalize());
+      raycaster.far = distance;
+      return raycaster.intersectObjects(wallMeshesByFloor[fromFloor], false).length === 0;
+    }
+
+    function addStaircases() {
+      for (let level = 0; level < 2; level++) {
+        const floorGroup = floorGroups[level];
+        const x = level === 0 ? -1.05 : 1.05;
+        const ascendingZ = level === 0 ? 1 : -1;
+        for (let step = 0; step < 14; step++) {
+          const stepY = step * (floorHeight / 14);
+          box(floorGroup, x, stepY + .13, level === 0 ? 19 + step * .44 : 25.16 - step * .44,
+            1.25, .26, .54, rustMat);
+        }
+        for (const side of [-1, 1]) {
+          const rail = new THREE.Mesh(new THREE.BoxGeometry(.1, floorHeight + .6, .14), rustMat);
+          rail.position.set(x + side * .72, floorHeight / 2, 22.0);
+          rail.rotation.x = ascendingZ > 0 ? .95 : -.95;
+          rail.castShadow = true;
+          floorGroup.add(rail);
+        }
+        for (const [signX, text] of [
+          [x - 1.45, `UP · FLOOR ${level + 2}`],
+          [x + 1.45, `DOWN · FLOOR ${level + 1}`]
+        ]) {
+          const sign = makeLabel(text, 1.65, .31);
+          sign.position.set(signX, 2.5, 22.0);
+          sign.rotation.y = signX < x ? -.16 : .16;
+          floorGroup.add(sign);
+        }
+      }
+    }
+    addStaircases();
+
+    function addRoofTerrace() {
+      const roof = floorGroups[2];
+      const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(35, 15), mat(0x505047));
+      floorMesh.rotation.x = -Math.PI / 2;
+      floorMesh.position.set(0, -.035, -39.45);
+      floorMesh.receiveShadow = true;
+      roof.add(floorMesh);
+
+      for (const x of [-17, 17]) {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(.34, .94, 14), plasterDark);
+        wall.position.set(x, .43, -39.7);
+        wall.receiveShadow = true;
+        wall.castShadow = true;
+        roof.add(wall);
+      }
+      const parapet = new THREE.Mesh(new THREE.BoxGeometry(34, .94, .34), plasterDark);
+      parapet.position.set(0, .43, -46.8);
+      parapet.receiveShadow = true;
+      parapet.castShadow = true;
+      roof.add(parapet);
+
+      for (const x of [-15, -10, -5, 5, 10, 15]) {
+        const upright = new THREE.Mesh(new THREE.BoxGeometry(.12, .8, .12), rustMat);
+        upright.position.set(x, .57, -32.5);
+        roof.add(upright);
+      }
+      const overheadBeam = new THREE.Mesh(new THREE.BoxGeometry(30, .12, .16), rustMat);
+      overheadBeam.position.set(0, .98, -32.5);
+      roof.add(overheadBeam);
+
+      for (const x of [-11, -5.5, 5.5, 11]) {
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.19, .34, 5.8, 7), mat(0x40382d));
+        trunk.position.set(x, 2.82, -40 + Math.sin(x) * 1.2);
+        trunk.castShadow = true;
+        roof.add(trunk);
+        for (let branch = 0; branch < 4; branch++) {
+          const limb = new THREE.Mesh(new THREE.CylinderGeometry(.045, .11, 2.8, 5), mat(0x474034));
+          limb.position.set(x + (branch % 2 ? .9 : -.9), 5.0 + branch * .14, -40 + Math.sin(x) * 1.2);
+          limb.rotation.z = branch % 2 ? -.73 : .73;
+          limb.castShadow = true;
+          roof.add(limb);
+        }
+        for (const side of [-1, 1]) {
+          const canopy = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(1.6 + Math.random() * .4, 1),
+            mat(0x354237)
+          );
+          canopy.position.set(x + side * .95, 5.6 + Math.random() * .7, -40 + Math.sin(x) * 1.2);
+          canopy.scale.set(1.5, .76, 1.15);
+          canopy.castShadow = true;
+          roof.add(canopy);
+        }
+        const planter = new THREE.Mesh(new THREE.BoxGeometry(1.5, .46, 1.45), rustMat);
+        planter.position.set(x, .23, -40 + Math.sin(x) * 1.2);
+        roof.add(planter);
+        for (let leaf = 0; leaf < 5; leaf++) {
+          const fern = new THREE.Mesh(new THREE.ConeGeometry(.25, 1.4, 5), leafMat);
+          fern.position.set(x + (Math.random() - .5) * 1.1, 1 + Math.random() * .5, -40 + Math.sin(x) * 1.2 + (Math.random() - .5));
+          fern.rotation.z = (Math.random() - .5) * .8;
+          roof.add(fern);
+        }
+      }
+      const terraceSign = makeLabel("BEELITZ · ROOF TERRACE", 3.4, .5);
+      terraceSign.position.set(0, 2.65, -33);
+      roof.add(terraceSign);
+      const moonlight = new THREE.PointLight(0x9bacb5, .65, 18, 2);
+      moonlight.position.set(0, 5.4, -40);
+      roof.add(moonlight);
+      createGhost(14, -39, 2, 5.2);
+    }
+    addRoofTerrace();
+
+    function placeSupply(x, z, floor, resource) {
+      const group = new THREE.Group();
+      group.position.set(x, 0, z);
+      let item;
+      if (resource === "water") {
+        const bottleGlass = mat(0x829b98, .26, { metalness: .13, emissive: 0x233839, emissiveIntensity: .2 });
+        item = new THREE.Mesh(new THREE.CylinderGeometry(.15, .18, .44, 10), bottleGlass);
+        item.position.y = .65;
+        group.add(item);
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(.065, .105, .14, 8), bottleGlass);
+        neck.position.y = .94; group.add(neck);
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(.071, .071, .07, 8), rustMat);
+        cap.position.y = 1.045; group.add(cap);
+        const label = new THREE.Mesh(new THREE.BoxGeometry(.02, .14, .18), mat(0xb9ae8b));
+        label.position.set(.156, .64, 0); group.add(label);
+      } else {
+        const wrapper = mat(0x79694f, .77, { emissive: 0x332716, emissiveIntensity: .08 });
+        item = new THREE.Mesh(new THREE.BoxGeometry(.48, .24, .36), wrapper);
+        item.position.y = .63;
+        group.add(item);
+        const band = new THREE.Mesh(new THREE.BoxGeometry(.09, .25, .37), mat(0xb19b70));
+        band.position.set(0, .63, .01); group.add(band);
+      }
+      if (!isTouchDevice) {
+        const glint = new THREE.PointLight(resource === "water" ? 0x8aaeb0 : 0xb09365, .24, 2, 2);
+        glint.position.y = 1; group.add(glint);
+      }
+      item.castShadow = true;
+      floorGroups[floor].add(group);
+      interactables.push({
+        mesh: item, type: "supply", resource, floor, group,
+        label: resource === "water" ? "TAKE WATER" : "TAKE FOOD RATION"
+      });
+    }
+
+    function buildSupplyStores() {
+      for (let level = 0; level < 3; level++) {
+        const room = floorGroups[level];
+        for (const z of [-13.5, -10.5]) {
+          box(room, 14.55, 1.02, z, 1.35, .12, .14, woodMat);
+          box(room, 16.05, 1.02, z, 1.35, .12, .14, woodMat);
+          for (const x of [13.85, 16.75]) {
+            box(room, x, 1.02, z, .1, 2.04, .1, rustMat);
+          }
+        }
+        box(room, 17.19, 2.55, -12, .12, .72, 2.55, plasterDark);
+        const storeLabel = makeLabel("WARD SUPPLY STORE", 1.8, .34);
+        storeLabel.position.set(17.1, 2.55, -12);
+        storeLabel.rotation.y = -Math.PI / 2;
+        room.add(storeLabel);
+        placeSupply(14.15, -12.9, level, "water");
+        placeSupply(14.15, -11.3, level, "ration");
+        placeSupply(16.05, -12.9, level, "ration");
+        placeSupply(16.05, -11.3, level, "water");
+      }
+    }
+    buildSupplyStores();
+
+    function addSearchFurniture(x, z, floor, type, loot) {
+      const group = new THREE.Group();
+      group.position.set(x, floor * floorHeight, z);
+      floorGroups[floor].add(group);
+      const top = box(group, 0, .78, 0, 1.05, .13, .72, woodMat);
+      for (const sx of [-.43, .43]) for (const sz of [-.27, .27]) {
+        box(group, sx, .37, sz, .075, .74, .075, woodMat);
+      }
+      let targetMesh;
+      if (type === "drawer") {
+        const body = box(group, 0, .51, -.05, .86, .43, .57, plasterDark);
+        targetMesh = box(group, 0, .57, -.35, .77, .21, .045, rustMat);
+        box(group, 0, .57, -.385, .06, .04, .025, metalMat);
+        box(group, 0, .31, -.35, .77, .21, .045, rustMat);
+        box(group, 0, .31, -.385, .06, .04, .025, metalMat);
+        group.userData.drawers = [targetMesh];
+      } else {
+        const mattress = box(group, 0, .91, 0, 1.25, .17, 2.35, rustMat);
+        box(group, 0, 1.03, -.05, 1.12, .14, 2.12, mat(0x888176));
+        const searchTarget = new THREE.Mesh(
+          new THREE.BoxGeometry(1.05, .16, 1.75),
+          new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+        );
+        searchTarget.position.set(0, .43, -.25);
+        group.add(searchTarget);
+        targetMesh = searchTarget;
+        mattress.userData.searchBed = true;
+      }
+      interactables.push({
+        mesh: targetMesh, group, type, loot, floor, searched: false,
+        label: type === "drawer" ? "DOUBLE-CLICK · SEARCH DRAWER" : "TRIPLE-CLICK · SEARCH UNDER BED"
+      });
+    }
+
+    function buildSearchFurniture() {
+      const locations = [
+        [
+          { x: -6.1, z: 16.4, type: "drawer", loot: "keycard" },
+          { x: 6.2, z: 9.2, type: "drawer", loot: "supplies" },
+          { x: 8, z: 25.7, type: "under-bed", loot: "supplies" },
+          { x: -13.4, z: -6.3, type: "under-bed", loot: "weapon" }
+        ],
+        [
+          { x: 6.1, z: 1.4, type: "drawer", loot: "revolver" },
+          { x: -6.2, z: 17.2, type: "drawer", loot: "keycard" },
+          { x: -8, z: -14.3, type: "under-bed", loot: "supplies" },
+          { x: 13.4, z: 9.7, type: "under-bed", loot: "supplies" }
+        ],
+        [
+          { x: -6.2, z: -6.1, type: "drawer", loot: "supplies" },
+          { x: 6.1, z: 17.1, type: "drawer", loot: "weapon" },
+          { x: 8, z: -14.3, type: "under-bed", loot: "supplies" },
+          { x: -13.4, z: 25.7, type: "under-bed", loot: "supplies" }
+        ]
+      ];
+      for (let floor = 0; floor < locations.length; floor++) {
+        for (const item of locations[floor]) {
+          addSearchFurniture(item.x, item.z, floor, item.type, item.loot);
+        }
+      }
+    }
+    buildSearchFurniture();
+
+    function placeWeaponPickup(x, z, floor, type) {
+      const group = new THREE.Group();
+      group.position.set(x, 0, z);
+      let targetMesh;
+      if (type === "pipe") {
+        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(.055, .06, 1.14, 8), rustMat);
+        pipe.rotation.z = Math.PI / 2;
+        pipe.position.set(0, .48, 0);
+        pipe.castShadow = true;
+        group.add(pipe);
+        const collar = new THREE.Mesh(new THREE.TorusGeometry(.065, .018, 5, 8), metalMat);
+        collar.rotation.y = Math.PI / 2; collar.position.set(-.35, .48, 0); group.add(collar);
+        targetMesh = pipe;
+      } else if (type === "flare") {
+        const grip = new THREE.Mesh(new THREE.BoxGeometry(.15, .29, .15), woodMat);
+        grip.position.set(0, .4, 0); group.add(grip);
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(.065, .075, .42, 8), metalMat);
+        barrel.rotation.x = Math.PI / 2; barrel.position.set(0, .55, -.15); group.add(barrel);
+        targetMesh = barrel;
+      } else {
+        const caseMat = mat(0x873d31, .72, { emissive: 0x3b120d, emissiveIntensity: .12 });
+        const caseMesh = new THREE.Mesh(new THREE.BoxGeometry(.52, .32, .38), caseMat);
+        caseMesh.position.y = .44; caseMesh.castShadow = true; group.add(caseMesh);
+        const band = new THREE.Mesh(new THREE.BoxGeometry(.1, .33, .39), mat(0xd3ad79));
+        band.position.set(0, .44, .01); group.add(band);
+        targetMesh = caseMesh;
+      }
+      if (!isTouchDevice) {
+        const pickupGlow = new THREE.PointLight(type === "flare-ammo" ? 0xc56c49 : 0xc0a77a, .26, 2.2, 2);
+        pickupGlow.position.y = 1; group.add(pickupGlow);
+      }
+      floorGroups[floor].add(group);
+      const labels = { pipe: "TAKE IRON PIPE", flare: "TAKE FLARE PISTOL", "flare-ammo": "TAKE FLARE SHELLS" };
+      interactables.push({ mesh: targetMesh, group, type: "weapon-pickup", weapon: type, floor, label: labels[type] });
+    }
+    placeWeaponPickup(12.7, -12.1, 0, "pipe");
+    placeWeaponPickup(16.2, -12.1, 1, "flare");
+    placeWeaponPickup(12.7, -12.1, 1, "flare-ammo");
+    placeWeaponPickup(16.2, -12.1, 2, "flare-ammo");
+    placeWeaponPickup(12.7, -12.1, 2, "flare-ammo");
+
+    function createGhost(x, z, floor, phase) {
+      const figure = new THREE.Group();
+      const spirit = new THREE.MeshBasicMaterial({
+        color: 0xaab4b0, transparent: true, opacity: .16,
+        depthWrite: false, side: THREE.DoubleSide
+      });
+      const gown = new THREE.Mesh(new THREE.ConeGeometry(.48, 1.45, 7, 1, true), spirit);
+      gown.position.y = .96; figure.add(gown);
+      const face = new THREE.Mesh(
+        new THREE.SphereGeometry(.25, 9, 7),
+        new THREE.MeshBasicMaterial({ color: 0xc1c6b9, transparent: true, opacity: .22 })
+      );
+      face.position.y = 1.87; face.scale.y = 1.15; figure.add(face);
+      for (const side of [-1, 1]) {
+        const eye = new THREE.Mesh(
+          new THREE.SphereGeometry(.037, 6, 5),
+          new THREE.MeshBasicMaterial({ color: 0xced4c7, transparent: true, opacity: .5 })
+        );
+        eye.position.set(side * .09, 1.9, -.22); figure.add(eye);
+      }
+      const glow = new THREE.PointLight(0xa9b6ae, .23, 2.5, 2);
+      glow.position.y = 1.4; figure.add(glow);
+      figure.position.set(x, .12, z);
+      floorGroups[floor].add(figure);
+      ghosts.push({ mesh: figure, x, z, floor, phase, material: spirit, glow });
+    }
+    createGhost(-10.5, -21, 0, .2);
+    createGhost(12, 7, 0, 2.2);
+    createGhost(-9.5, 14, 1, 4.3);
+    createGhost(11.5, -23, 2, 1.3);
+    createGhost(-11, -4, 2, 3.4);
+
+    function updateNeedDisplay() {
+      for (const [name, value] of Object.entries(needs)) {
+        const bar = document.querySelector(`#${name}-fill`);
+        const row = document.querySelector(`#${name}-row`);
+        bar.style.width = `${value}%`;
+        row.classList.toggle("low", value < 30);
+        document.querySelector(`#${name}-value`).textContent = `${Math.ceil(value)}%`;
+      }
+      document.querySelector("#water-count").textContent = supplies.water;
+      document.querySelector("#ration-count").textContent = supplies.ration;
+      document.querySelector("#drink-water").disabled = !supplies.water || needs.thirst >= 100;
+      document.querySelector("#eat-ration").disabled = !supplies.ration || needs.hunger >= 100;
+      document.querySelector("#flare-count").textContent = weaponInventory.flareAmmo;
+      document.querySelector("#revolver-count").textContent = weaponInventory.revolverAmmo;
+      document.querySelector("#stamina-fill").style.width = `${stamina}%`;
+      document.querySelector("#stamina-row").classList.toggle("low", stamina < 25);
+      document.querySelector("#stamina-value").textContent = `${Math.ceil(stamina)}%`;
+      document.querySelector("#equip-pipe").disabled = !weaponInventory.pipe;
+      document.querySelector("#equip-flare").disabled = !weaponInventory.flare || weaponInventory.flareAmmo < 1;
+      document.querySelector("#equip-revolver").disabled = !weaponInventory.revolver || weaponInventory.revolverAmmo < 1;
+      document.querySelector("#equip-pipe").classList.toggle("equipped", weaponInventory.equipped === "pipe");
+      document.querySelector("#equip-flare").classList.toggle("equipped", weaponInventory.equipped === "flare");
+      document.querySelector("#equip-revolver").classList.toggle("equipped", weaponInventory.equipped === "revolver");
+      carriedPipe.visible = weaponInventory.equipped === "pipe";
+      carriedFlarePistol.visible = weaponInventory.equipped === "flare";
+      carriedRevolver.visible = weaponInventory.equipped === "revolver";
+    }
+
+    function equipWeapon(weapon) {
+      if (!active || !weaponInventory[weapon]) return;
+      if (weapon === "flare" && weaponInventory.flareAmmo < 1) {
+        showToast("The flare pistol is empty. Find more flare shells.");
+        return;
+      }
+      if (weapon === "revolver" && weaponInventory.revolverAmmo < 1) {
+        showToast("The revolver is empty. You have no rounds left.");
+        return;
+      }
+      weaponInventory.equipped = weapon;
+      updateNeedDisplay();
+      showToast(weapon === "pipe" ? "Iron pipe ready. Right-click to swing." :
+        weapon === "revolver" ? "Revolver ready. Face the Warden and right-click to fire." :
+          "Flare pistol ready. Right-click to fire.");
+    }
+    const packPanel = document.querySelector("#survival-panel");
+    const packToggle = document.querySelector("#pack-toggle");
+    function setPackOpen(open) {
+      packPanel.classList.toggle("collapsed", !open);
+      packToggle.setAttribute("aria-expanded", String(open));
+    }
+    packToggle.addEventListener("click", () => setPackOpen(packPanel.classList.contains("collapsed")));
+    setPackOpen(!isTouchDevice);
+    document.querySelector("#equip-pipe").addEventListener("click", () => equipWeapon("pipe"));
+    document.querySelector("#equip-flare").addEventListener("click", () => equipWeapon("flare"));
+    document.querySelector("#equip-revolver").addEventListener("click", () => equipWeapon("revolver"));
+
+    function getPvpAimTarget() {
+      if (!pvpEnabled) return null;
+      let selected = null;
+      let selectedDistance = 8;
+      for (const remote of remotePlayers.values()) {
+        if (!remote.pvpEnabled || remote.downed || remote.floor !== player.floor) continue;
+        const dx = remote.x - player.x;
+        const dz = remote.z - player.z;
+        const distance = Math.hypot(dx, dz);
+        const facing = Math.atan2(dx, -dz);
+        const angle = Math.atan2(Math.sin(facing - player.yaw), Math.cos(facing - player.yaw));
+        if (distance < selectedDistance && Math.abs(angle) < .62 &&
+            hasLineOfSight(player, { x: remote.x, z: remote.z, floor: remote.floor })) {
+          selected = remote;
+          selectedDistance = distance;
+        }
+      }
+      return selected;
+    }
+
+    function useWeapon() {
+      if (!active || player.hidden || staircaseTraversal || weaponCooldown > 0) return;
+      const weapon = weaponInventory.equipped;
+      if (!weapon || !weaponInventory[weapon]) {
+        showToast("You have no weapon equipped. Search the ward supply stores.");
+        return;
+      }
+      if (weapon === "revolver") {
+        if (weaponInventory.revolverAmmo < 1) {
+          showToast("The revolver clicks empty.");
+          return;
+        }
+        const rival = getPvpAimTarget();
+        if (rival) {
+          weaponInventory.revolverAmmo--;
+          weaponCooldown = .62;
+          updateNeedDisplay();
+          if (!sendNetworkMessage({ type: "pvp-hit", target: rival.id })) {
+            showToast("The ward radio is offline. Your shot cannot reach the rival.");
+          } else {
+            showToast(`You fire at ${rival.name}.`, 1600);
+          }
+          return;
+        }
+        weaponInventory.revolverAmmo--;
+        weaponCooldown = .62;
+        const dx = boss.x - player.x, dz = boss.z - player.z;
+        const distanceToBoss = Math.hypot(dx, dz);
+        const facing = Math.atan2(dx, -dz);
+        const angle = Math.atan2(Math.sin(facing - player.yaw), Math.cos(facing - player.yaw));
+        if (boss.active && boss.floor === player.floor && distanceToBoss < 12 &&
+            Math.abs(angle) < .72 && hasLineOfSight(player, { x: boss.x, z: boss.z, floor: boss.floor })) {
+          boss.health--;
+          bossMaterial.opacity = .45;
+          window.setTimeout(() => { bossMaterial.opacity = .94; }, 130);
+          if (boss.health <= 0) {
+            boss.active = false;
+            boss.defeated = true;
+            boss.mesh.visible = false;
+            grantKeycard("The Warden dissolves. A final keycard remains in the ash.");
+            status.textContent = "THE WARDEN IS SILENT";
+          } else {
+            showToast(`The round strikes the Warden. ${boss.health} hit${boss.health === 1 ? "" : "s"} remain.`, 1800);
+          }
+        } else if (boss.active) {
+          showToast("The shot cracks through the ward and misses. Face the Warden.", 1900);
+        } else {
+          showToast("The revolver echoes through the empty corridor.", 1500);
+        }
+        updateNeedDisplay();
+        return;
+      }
+      const distance = Math.hypot(entity.position.x - player.x, entity.position.z - player.z);
+      if (player.floor === entity.floor && distance < 2.9 &&
+          hasLineOfSight(player, { x: entity.position.x, z: entity.position.z, floor: entity.floor })) {
+        beastStunTimer = weapon === "pipe" ? 1.7 : 6.5;
+        enemyState = "stunned";
+        weaponCooldown = weapon === "pipe" ? .95 : .5;
+        if (weapon === "flare") {
+          weaponInventory.flareAmmo--;
+          updateNeedDisplay();
+          showToast("The flare blooms white. The Beast recoils—run!", 2600);
+        } else {
+          showToast("The pipe rings against the shadow. It staggers—run!", 2300);
+        }
+        return;
+      }
+      if (weapon === "flare") {
+        weaponInventory.flareAmmo--;
+        updateNeedDisplay();
+        showToast("The flare burns out in the dark. The shot was too wide.", 2200);
+      } else {
+        showToast("The pipe cuts through empty air.", 1500);
+      }
+      weaponCooldown = weapon === "pipe" ? .65 : .45;
+    }
+
+    function consumeSupply(resource) {
+      if (!active) return;
+      const need = resource === "water" ? "thirst" : "hunger";
+      const button = resource === "water" ? "#drink-water" : "#eat-ration";
+      if (!supplies[resource]) {
+        showToast(resource === "water" ? "Your canteen is empty. Search the supply stores." : "Your pack is out of rations. Search the supply stores.");
+        return;
+      }
+      if (needs[need] >= 96) {
+        showToast(resource === "water" ? "Your canteen can wait. Save the water for later." : "You are not hungry yet. Save the ration.");
+        return;
+      }
+      supplies[resource]--;
+      needs[need] = Math.min(100, needs[need] + 48);
+      updateNeedDisplay();
+      showToast(resource === "water" ? "You drink from your canteen. Keep moving." : "You eat a field ration. The ward remains silent.");
+      document.querySelector(button).blur();
+    }
+    document.querySelector("#drink-water").addEventListener("click", () => consumeSupply("water"));
+    document.querySelector("#eat-ration").addEventListener("click", () => consumeSupply("ration"));
+    for (const [selector, resource] of [["#thirst-row", "water"], ["#hunger-row", "ration"]]) {
+      const row = document.querySelector(selector);
+      row.addEventListener("click", () => consumeSupply(resource));
+      row.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          consumeSupply(resource);
+        }
+      });
+    }
+    updateNeedDisplay();
+
+    function choosePatrolTarget() {
+      const options = patrol.filter(point => Math.hypot(point.x - entity.position.x, point.z - entity.position.z) > 5);
+      enemyTarget = options[Math.floor(Math.random() * options.length)] ?? patrol[0];
+      targetTimer = 7 + Math.random() * 5;
+    }
+
+    function updateEnemy(dt, elapsed) {
+      if (player.caught) return;
+      weaponCooldown = Math.max(0, weaponCooldown - dt);
+      if (beastStunTimer > 0) {
+        beastStunTimer = Math.max(0, beastStunTimer - dt);
+        enemyState = "stunned";
+        danger.classList.toggle("visible", player.floor === entity.floor &&
+          Math.hypot(player.x - entity.position.x, player.z - entity.position.z) < 8 && !player.hidden);
+        status.textContent = "THE BEAST STAGGERS";
+        if (beastStunTimer === 0) {
+          enemyState = "patrol";
+          enemyTarget = null;
+          targetTimer = 0;
+        }
+        return;
+      }
+      if (enemyState === "stunned") {
+        enemyState = "patrol";
+        enemyTarget = null;
+        targetTimer = 0;
+      }
+      targetTimer -= dt;
+      entityFloorTimer -= dt;
+      if (entityFloorTimer <= 0 && enemyState === "patrol") {
+        entity.floor = (entity.floor + 1) % 3;
+        entity.position.y = entity.floor * floorHeight;
+        entityFloorTimer = 22 + Math.random() * 20;
+        enemyTarget = null;
+        targetTimer = 0;
+      }
+      const sameFloor = player.floor === entity.floor;
+      const distance = sameFloor ? Math.hypot(player.x - entity.position.x, player.z - entity.position.z) : Infinity;
+      const dx = player.x - entity.position.x, dz = player.z - entity.position.z;
+      const facing = Math.atan2(dx, -dz);
+      const angle = Math.atan2(Math.sin(facing - entity.rotation.y), Math.cos(facing - entity.rotation.y));
+      const seesPlayer = !player.hidden && distance < 12 && Math.abs(angle) < .82 &&
+        hasLineOfSight({ x: entity.position.x, z: entity.position.z, floor: entity.floor }, player);
+      const noiseRadius = player.sprinting ? 18 : player.moving ? 8 : 0;
+      const hearsPlayer = !player.hidden && sameFloor && distance < noiseRadius;
+
+      if (seesPlayer) {
+        enemyState = "hunt";
+        enemyTarget = { x: player.x, z: player.z };
+        targetTimer = 1.4;
+      } else if (hearsPlayer && enemyState !== "hunt") {
+        enemyState = "investigate";
+        enemyTarget = { x: player.x, z: player.z };
+        targetTimer = player.sprinting ? 4.5 : 2.8;
+      } else if (enemyState === "hunt" && targetTimer <= 0) {
+        enemyState = "investigate";
+        targetTimer = 4;
+      } else if (enemyState === "investigate" && targetTimer <= 0) {
+        enemyState = "patrol";
+        choosePatrolTarget();
+      } else if ((!enemyTarget || targetTimer <= 0) && enemyState === "patrol") {
+        choosePatrolTarget();
+      }
+
+      if (!enemyTarget) choosePatrolTarget();
+      const targetX = enemyTarget.x, targetZ = enemyTarget.z;
+      const vx = targetX - entity.position.x, vz = targetZ - entity.position.z;
+      const remaining = Math.hypot(vx, vz);
+      const speed = enemyState === "hunt" ? 3.0 : enemyState === "investigate" ? 1.7 : 1.08;
+      if (remaining > .45) {
+        const step = Math.min(remaining, speed * dt);
+        const nx = entity.position.x + vx / remaining * step;
+        const nz = entity.position.z + vz / remaining * step;
+        if (!isBlocked(nx, entity.position.z, entity.floor)) entity.position.x = nx;
+        if (!isBlocked(entity.position.x, nz, entity.floor)) entity.position.z = nz;
+        entity.rotation.y = Math.atan2(vx, -vz);
+        entity.position.y = Math.sin(elapsed * 4.1) * .045;
+      } else if (enemyState === "patrol") {
+        targetTimer = 0;
+      }
+
+      if (sameFloor && distance < .92 && !player.hidden) triggerGameOver();
+      const close = distance < 8 && !player.hidden;
+      danger.classList.toggle("visible", close);
+      if (close && enemyState === "hunt") {
+        danger.textContent = "IT HAS SEEN YOU · RUN";
+        status.textContent = "IT HAS SEEN YOU";
+      } else if (close && enemyState === "investigate") {
+        danger.textContent = "IT HEARD YOU · HIDE";
+        status.textContent = "SOMETHING IS SEARCHING";
+      } else {
+        danger.textContent = "SOMETHING IS NEAR";
+      }
+      if (player.hidden) status.textContent = "HIDDEN · HOLD YOUR BREATH";
+      else if (enemyState === "investigate") status.textContent = "SOMETHING IS SEARCHING";
+      else if (!player.moving) status.textContent = "ALONE IN THE WARD";
+    }
+
+    function playHeartbeat() {
+      if (!audioContext || audioContext.state !== "running") return;
+      const now = audioContext.currentTime;
+      for (const offset of [0, .18]) {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(offset ? 46 : 58, now + offset);
+        gain.gain.setValueAtTime(.001, now + offset);
+        gain.gain.exponentialRampToValueAtTime(.075, now + offset + .035);
+        gain.gain.exponentialRampToValueAtTime(.001, now + offset + .17);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start(now + offset);
+        oscillator.stop(now + offset + .18);
+      }
+    }
+
+    function updateThrill(dt) {
+      const entityDistance = entity.floor === player.floor
+        ? Math.hypot(player.x - entity.position.x, player.z - entity.position.z)
+        : Infinity;
+      const bossDistance = boss.active && boss.floor === player.floor
+        ? Math.hypot(player.x - boss.x, player.z - boss.z)
+        : Infinity;
+      const dangerDistance = Math.min(entityDistance, bossDistance);
+      const visibleThreat = !player.hidden && dangerDistance < 12;
+      const threat = visibleThreat ? Math.max(0, 1 - dangerDistance / 12) : 0;
+      const searchingNearby = player.hidden && dangerDistance < 5
+        ? Math.max(0, (5 - dangerDistance) / 5) * .28
+        : 0;
+      threatVignette.style.opacity = String(Math.max(threat * .72, searchingNearby));
+
+      if (threat > .15 || searchingNearby > .08) {
+        heartbeatTimer -= dt;
+        if (heartbeatTimer <= 0) {
+          playHeartbeat();
+          heartbeatTimer = Math.max(.48, 1.28 - threat * .66 - searchingNearby * .4);
+        }
+      } else {
+        heartbeatTimer = Math.min(heartbeatTimer, .2);
+      }
+
+      if (entityDistance < 8 && enemyState === "hunt" && !player.hidden) {
+        if (Math.random() < dt * (3 + threat * 9)) panicFlashTimer = .07;
+      }
+      panicFlashTimer = Math.max(0, panicFlashTimer - dt);
+    }
+
+    function updateBoss(dt, elapsed) {
+      if (!boss.active || player.caught) return;
+      if (boss.floor !== player.floor) {
+        boss.floorTimer -= dt;
+        if (boss.floorTimer <= 0) {
+          boss.floor = player.floor;
+          boss.x = 0;
+          boss.z = Math.max(-27, Math.min(24, player.z - 9));
+          boss.floorTimer = 8;
+        }
+      } else {
+        boss.floorTimer = 8;
+      }
+      if (!player.hidden && boss.floor === player.floor) {
+        const dx = player.x - boss.x, dz = player.z - boss.z;
+        const distance = Math.hypot(dx, dz);
+        if (distance > 1.25) {
+          const step = Math.min(distance - 1.15, 1.55 * dt);
+          boss.x += dx / distance * step;
+          boss.z += dz / distance * step;
+          boss.mesh.rotation.y = Math.atan2(dx, -dz);
+        } else {
+          triggerGameOver();
+        }
+      }
+      boss.mesh.position.set(
+        boss.x,
+        boss.floor * floorHeight + Math.sin(elapsed * 2.4 + boss.bobPhase) * .12,
+        boss.z
+      );
+      bossGlow.intensity = 1.7 + Math.sin(elapsed * 3.4) * .55;
+      if (boss.floor === player.floor && !player.hidden &&
+          Math.hypot(player.x - boss.x, player.z - boss.z) < 11) {
+        status.textContent = `THE WARDEN · ${boss.health} SHOTS TO STOP IT`;
+      }
+    }
+
+    function triggerGameOver() {
+      player.caught = true;
+      active = false;
+      const scare = document.querySelector("#jumpscare");
+      scare.hidden = false;
+      scare.classList.remove("active");
+      void scare.offsetWidth;
+      scare.classList.add("active");
+      renderer.domElement.style.filter = "contrast(1.55) saturate(.35) brightness(.58)";
+      if (audioContext) {
+        const osc = audioContext.createOscillator(), gain = audioContext.createGain();
+        osc.type = "sawtooth"; osc.frequency.setValueAtTime(110, audioContext.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(34, audioContext.currentTime + .9);
+        gain.gain.setValueAtTime(.001, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(.28, audioContext.currentTime + .08);
+        gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + 1.1);
+        osc.connect(gain); gain.connect(audioContext.destination); osc.start(); osc.stop(audioContext.currentTime + 1.2);
+      }
+      setTimeout(() => {
+        scare.hidden = true;
+        const screen = document.querySelector("#game-over");
+        screen.hidden = false;
+        screen.classList.add("end");
+      }, 850);
+    }
+
+    function update(dt, elapsed) {
+      if (active) {
+        needs.thirst = Math.max(0, needs.thirst - dt * .32);
+        needs.hunger = Math.max(0, needs.hunger - dt * .2);
+        const wantsToSprint = (autoRunEnabled || held.has("Shift")) && held.has("ArrowUp") && !player.hidden &&
+          !staircaseTraversal && stamina > 0;
+        player.sprinting = wantsToSprint;
+        if (wantsToSprint) stamina = Math.max(0, stamina - dt * 25);
+        else stamina = Math.min(100, stamina + dt * 10);
+        needsHudTimer -= dt;
+        if (needsHudTimer <= 0) {
+          updateNeedDisplay();
+          needsHudTimer = .4;
+        }
+      }
+      if (active && !player.hidden) {
+        const turn = staircaseTraversal ? 0 :
+          (held.has("ArrowRight") ? 1 : 0) - (held.has("ArrowLeft") ? 1 : 0);
+        player.yaw += turn * 1.62 * dt;
+        const forward = (held.has("ArrowUp") ? 1 : 0) - (held.has("ArrowDown") ? 1 : 0);
+        player.moving = forward !== 0;
+        if (forward !== 0) {
+          const tired = needs.thirst < 15 || needs.hunger < 15;
+          const pace = player.sprinting ? 3.2 : tired ? 1.1 : needs.thirst < 35 || needs.hunger < 35 ? 1.45 : 1.78;
+          const step = pace * forward * dt;
+          const nx = player.x + Math.sin(player.yaw) * step;
+          const nz = player.z - Math.cos(player.yaw) * step;
+          const previousZ = player.z;
+          if (!isBlocked(nx, player.z)) player.x = nx;
+          if (!isBlocked(player.x, nz)) player.z = nz;
+          updateStairTraversal(player.z - previousZ);
+          stepTimer -= dt;
+          if (stepTimer <= 0) stepTimer = .48 + Math.random() * .19;
+          status.textContent = "MOVING THROUGH THE WARD";
+        } else {
+          stepTimer = 0;
+        }
+        if (player.moving && !player.hidden) {
+          const suspicion = Math.hypot(entity.position.x - player.x, entity.position.z - player.z);
+          if (player.floor === entity.floor && suspicion < 5) targetTimer = Math.min(targetTimer, 1.1);
+        }
+      }
+
+      if (active) {
+        updateEnemy(dt, elapsed);
+        updateBoss(dt, elapsed);
+        updateThrill(dt);
+      } else {
+        threatVignette.style.opacity = "0";
+      }
+      const behind = new THREE.Vector3(-Math.sin(player.yaw) * cameraDistance, cameraDistance * .47, Math.cos(player.yaw) * cameraDistance);
+      const floorY = player.elevation;
+      const cameraTarget = new THREE.Vector3(player.x, floorY + 1.6, player.z).add(behind);
+      if (player.hidden) cameraTarget.add(new THREE.Vector3(-.8, -.15, .1));
+      camera.position.lerp(cameraTarget, 1 - Math.exp(-dt * 5.2));
+      const look = new THREE.Vector3(player.x + Math.sin(player.yaw) * 2.4, floorY + 1.42, player.z - Math.cos(player.yaw) * 2.4);
+      camera.lookAt(look);
+      const playerPosition = new THREE.Vector3(player.x, floorY + 1.46, player.z);
+      const beamDirection = new THREE.Vector3(Math.sin(player.yaw), -.08, -Math.cos(player.yaw));
+      playerLight.position.copy(playerPosition).add(new THREE.Vector3(0, .2, 0));
+      playerLight.target.position.copy(playerPosition).add(beamDirection.multiplyScalar(9));
+      character.position.set(player.x, floorY + (player.hidden ? -2.8 : Math.abs(Math.sin(elapsed * 9)) * (player.moving ? .035 : 0)), player.z);
+      character.rotation.y = -player.yaw;
+      localNameTag.sprite.visible = active && !player.hidden && !player.caught;
+      legs[0].rotation.x = player.moving ? Math.sin(elapsed * 9) * .37 : 0;
+      legs[1].rotation.x = player.moving ? -Math.sin(elapsed * 9) * .37 : 0;
+      const flicker = .79 + Math.sin(elapsed * 9) * .045 + (Math.random() > .995 ? -.32 : 0);
+      playerLight.intensity = flashlightOn && !player.hidden && panicFlashTimer === 0 ? 52 * flicker : 0;
+      flashlightGlow.position.copy(playerLight.position);
+      flashlightGlow.intensity = flashlightOn && !player.hidden && panicFlashTimer === 0 ? .9 * flicker : 0;
+      if (!active) { playerLight.intensity = 0; flashlightGlow.intensity = 0; }
+      entity.position.y = entity.floor * floorHeight + Math.sin(elapsed * 4.1) * .045;
+      entityCore.material.opacity = .88 + Math.sin(elapsed * 3.2) * .12;
+      aura.intensity = .8 + Math.sin(elapsed * 2.1) * .3;
+      for (const ghost of ghosts) {
+        const drift = Math.sin(elapsed * .27 + ghost.phase) * 1.1;
+        ghost.mesh.position.set(ghost.x + drift, .12 + Math.sin(elapsed * .72 + ghost.phase) * .16, ghost.z + Math.cos(elapsed * .21 + ghost.phase) * .7);
+        ghost.material.opacity = .055 + Math.max(0, Math.sin(elapsed * .61 + ghost.phase)) * .17;
+        ghost.glow.intensity = .07 + Math.max(0, Math.sin(elapsed * .61 + ghost.phase)) * .24;
+      }
+
+      if (active && !player.hidden && !staircaseTraversal) {
+        hovered = getAimTarget();
+        nearbyHide = nearestHideSpot();
+        const stair = nearbyStaircase();
+        if (hovered) hint.textContent = `CLICK · ${hovered.label}`;
+        else if (stair) hint.textContent = `ARROW KEYS · ${stair.label}`;
+        else if (nearbyHide) hint.textContent = "CLICK · HIDE IN WARDROBE";
+        else hint.textContent = "CLICK · TOGGLE FLASHLIGHT";
+      } else if (player.hidden && active) {
+        hovered = null; hint.textContent = "CLICK OR ESC · LEAVE HIDING PLACE";
+      } else {
+        hint.textContent = "";
+      }
+
+      if (active && peerId && networkSocket?.readyState === WebSocket.OPEN) {
+        const poseNow = performance.now();
+        if (poseNow - lastPoseSentAt >= 100) {
+          lastPoseSentAt = poseNow;
+          sendNetworkMessage({
+            type: "pose",
+            x: player.x,
+            z: player.z,
+            yaw: player.yaw,
+            floor: player.floor,
+            moving: player.moving && !player.hidden
+          });
+        }
+      }
+      const tickNow = performance.now();
+      const realDt = Math.min(.25, Math.max(dt, (tickNow - (lastRemoteTickAt || tickNow)) / 1000));
+      lastRemoteTickAt = tickNow;
+      for (const remote of remotePlayers.values()) {
+        remote.x += (remote.targetX - remote.x) * (1 - Math.exp(-realDt * 12));
+        remote.z += (remote.targetZ - remote.z) * (1 - Math.exp(-realDt * 12));
+        remote.yaw += Math.atan2(
+          Math.sin(remote.targetYaw - remote.yaw),
+          Math.cos(remote.targetYaw - remote.yaw)
+        ) * (1 - Math.exp(-realDt * 12));
+        remote.avatar.position.set(remote.x, Math.abs(Math.sin(elapsed * 9)) * (remote.moving ? .035 : 0), remote.z);
+        remote.avatar.rotation.y = -remote.yaw;
+        remote.model.legs[0].rotation.x = remote.moving ? Math.sin(elapsed * 9) * .37 : 0;
+        remote.model.legs[1].rotation.x = remote.moving ? -Math.sin(elapsed * 9) * .37 : 0;
+      }
+      updateMapPlayerMarker();
+      updateGhostRadar(dt);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), .05);
+      const elapsed = clock.elapsedTime;
+      update(dt, elapsed);
+      for (let i = 0; i < keyMeshes.length; i++) {
+        const g = keyMeshes[i];
+        if (g.visible) {
+          g.rotation.y += dt * .38;
+          g.position.y = keysByFloor[i] * floorHeight + Math.sin(elapsed * 1.35 + i) * .065;
+        }
+      }
+      for (const item of interactables) {
+        if (item.type === "supply" && item.group.visible) {
+          item.group.rotation.y += dt * .18;
+          item.mesh.position.y = (item.resource === "water" ? .65 : .63) +
+            Math.sin(elapsed * 1.45 + item.floor) * .045;
+        }
+      }
+      renderer.render(scene, camera);
+    }
+    // Diagnostics: open the game with ?debug on a tablet to see GPU limits and shader errors on screen.
+    if (new URLSearchParams(location.search).has("debug")) {
+      const gl = renderer.getContext();
+      const overlay = document.createElement("pre");
+      overlay.style.cssText = "position:fixed;left:6px;top:6px;z-index:99;margin:0;padding:6px;font:11px monospace;background:#000c;color:#9f9;pointer-events:none;max-width:92vw;white-space:pre-wrap";
+      document.body.appendChild(overlay);
+      let shaderErrors = 0;
+      renderer.debug.onShaderError = (context, program, vertexShader, fragmentShader) => {
+        shaderErrors++;
+        console.error("Shader error", context.getProgramInfoLog(program), context.getShaderInfoLog(fragmentShader));
+      };
+      setInterval(() => {
+        let lights = 0;
+        scene.traverseVisible(object => { if (object.isLight) lights++; });
+        overlay.textContent = `lights ${lights} | maxFragUniformVectors ${gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS)}\n` +
+          `dpr ${devicePixelRatio} | canvas ${renderer.domElement.width}x${renderer.domElement.height} | touch ${isTouchDevice}\n` +
+          `shaderErrors ${shaderErrors} | ${gl.isContextLost() ? "CONTEXT LOST" : "context ok"}`;
+      }, 1000);
+    }
+    animate();
+
+    addEventListener("resize", () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setPixelRatio(Math.min(devicePixelRatio, maxPixelRatio));
+    });
+  </script>
+</body>
+</html>
